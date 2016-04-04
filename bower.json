@@ -1,0 +1,23 @@
+{
+  "name": "white-label-mediator",
+  "description": "A simple JS mediator that allows communication between views.",
+  "main": "dist/index.js",
+  "authors": [
+    "bshack"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "javascript",
+    "js",
+    "mediator"
+  ],
+  "homepage": "https://github.com/bshack/white-label-mediator",
+  "moduleType": [
+    "amd"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules"
+  ],
+  "version": "1.0.0"
+}
