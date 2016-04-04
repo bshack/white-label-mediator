@@ -1,7 +1,7 @@
 import EventEmitter from 'events';
 import util from 'util';
 
-((EventEmitter, util, _) => {
+((EventEmitter, util) => {
 
     'use strict';
 
@@ -30,4 +30,4 @@ import util from 'util';
 
     module.exports = Mediator;
 
-})(EventEmitter, util, _);
+})(EventEmitter, util);

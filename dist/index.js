@@ -23,7 +23,7 @@
         };
     }
 
-    (function (EventEmitter, util, _) {
+    (function (EventEmitter, util) {
 
         'use strict';
 
@@ -51,5 +51,5 @@
         util.inherits(Mediator, EventEmitter);
 
         module.exports = Mediator;
-    })(_events2.default, _util2.default, _);
+    })(_events2.default, _util2.default);
 });
