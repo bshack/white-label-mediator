@@ -32,12 +32,9 @@
         */
 
         var Mediator = function Mediator(modelData) {
-            var _this = this;
 
-            // this is called whenever the model is instantiated
-            this.initialize = function () {
-                _this.emit('initialized');
-            };
+            // this is called whenever the mediator is instantiated
+            this.initialize = function () {};
 
             this.publish = this.emit;
 
@@ -45,6 +42,8 @@
 
             // run it on instantiation
             this.initialize();
+
+            this.publish('initialized');
         };
 
         // this sets up the events

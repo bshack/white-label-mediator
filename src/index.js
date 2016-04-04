@@ -11,10 +11,8 @@ import util from 'util';
 
     const Mediator = function(modelData) {
 
-        // this is called whenever the model is instantiated
-        this.initialize = () => {
-            this.emit('initialized');
-        };
+        // this is called whenever the mediator is instantiated
+        this.initialize = () => {};
 
         this.publish = this.emit;
 
@@ -22,6 +20,8 @@ import util from 'util';
 
         // run it on instantiation
         this.initialize();
+
+        this.publish('initialized');
 
     };
 
