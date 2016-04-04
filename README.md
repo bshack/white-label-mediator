@@ -36,7 +36,7 @@ mediator.subscribe('main-menu', function(data){
 
 ## Publish
 
-In a separate view you publish message that other views are subscribed too. The first argument is the name of the message you want to publish. The second argument is data you can pass along with your message event and is optional.
+In a separate view you publish message that other views are subscribed too. The first argument is the name of the message you want to publish. The second argument is data you can pass along with your message event and is optional. The data passed can be any data type.
 
 ```
 mediator.publish('main-menu', {
