@@ -12,7 +12,9 @@ describe("A suite", function() {
 
 describe("A Mediator", function() {
     beforeEach(function() {
-        mediator = new Mediator();
+        mediator = new Mediator({
+            extendedFunction: function() {}
+        });
         this.callback = function(data) {};
         spyOn(this, 'callback');
         mediator.on('main-menu', this.callback);
@@ -50,5 +52,8 @@ describe("A Mediator", function() {
     it("emits an event on emit without data", function() {
         mediator.emit('main-menu');
         expect(this.callback).toHaveBeenCalledWith();
+    });
+    it("is extendable", function() {
+        expect(mediator.extendedFunction).toEqual(jasmine.any(Function));
     });
 });
