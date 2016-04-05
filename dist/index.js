@@ -31,19 +31,29 @@
         MEDIATOR
         */
 
-        var Mediator = function Mediator(modelData) {
+        var baseMediator = {
+            initialize: function initialize() {}
+        };
 
-            // this is called whenever the mediator is instantiated
-            this.initialize = function () {};
+        var Mediator = function Mediator(overrideMediator) {
 
-            this.publish = this.emit;
+            var overrideProp = void 0;
+            var baseProp = void 0;
 
-            this.subscribe = this.on;
+            //extend he base view with overrides
+            for (overrideProp in overrideMediator) {
+                baseMediator[overrideProp] = overrideMediator[overrideProp];
+            }
+
+            //add view properties to this
+            for (baseProp in baseMediator) {
+                this[baseProp] = baseMediator[baseProp];
+            }
 
             // run it on instantiation
             this.initialize();
 
-            this.publish('initialized');
+            this.emit('initialized');
         };
 
         // this sets up the events

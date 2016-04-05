@@ -4,7 +4,11 @@
 
 A simple JS mediator that allows communication between views.
 
-Based on Node.js' events module: https://nodejs.org/api/events.html
+Events are emited using Node.js' events module. For more options on how to listen to events please look at the Node.js documentation:
+
+https://nodejs.org/api/events.html
+
+## Install
 
 Install the node module:
 
@@ -24,22 +28,22 @@ var Mediator = require('white-label-mediator');
 var mediator = new Mediator();
 ```
 
-## Subscribe
+## On
 
 In a separate view you subscribe to a message that the mediator will publish from another view. The first argument is the name of the message you want to subscribe to. The second argument in the callback.
 
 ```
-mediator.subscribe('main-menu', function(data){
+mediator.on('main-menu', function(data){
     window.console.log(data);
 });
 ```
 
-## Publish
+## Emit
 
 In a separate view you publish message that other views are subscribed too. The first argument is the name of the message you want to publish. The second argument is data you can pass along with your message event and is optional.
 
 ```
-mediator.publish('main-menu', {
+mediator.emit('main-menu', {
     state: 'open'
 });
 ```

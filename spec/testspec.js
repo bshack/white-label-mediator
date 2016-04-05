@@ -15,7 +15,7 @@ describe("A Mediator", function() {
         mediator = new Mediator();
         this.callback = function(data) {};
         spyOn(this, 'callback');
-        mediator.subscribe('main-menu', this.callback);
+        mediator.on('main-menu', this.callback);
     });
     afterEach(function() {
         mediator = {};
@@ -27,28 +27,28 @@ describe("A Mediator", function() {
     it("has an initialize function", function() {
         expect(mediator.initialize).toEqual(jasmine.any(Function));
     });
-    it("has a publish function", function() {
-        expect(mediator.publish).toEqual(jasmine.any(Function));
+    it("has a emit function", function() {
+        expect(mediator.emit).toEqual(jasmine.any(Function));
     });
-    it("has a subscribe function", function() {
-        expect(mediator.subscribe).toEqual(jasmine.any(Function));
+    it("has a on function", function() {
+        expect(mediator.on).toEqual(jasmine.any(Function));
     });
-    it("emits an event on publish", function() {
-        mediator.publish('main-menu', {
+    it("emits an event on emit", function() {
+        mediator.emit('main-menu', {
             state: 'open'
         });
         expect(this.callback).toHaveBeenCalled();
     });
-    it("emits an event on publish with data", function() {
-        mediator.publish('main-menu', {
+    it("emits an event on emit with data", function() {
+        mediator.emit('main-menu', {
             state: 'open'
         });
         expect(this.callback).toHaveBeenCalledWith({
             state: 'open'
         });
     });
-    it("emits an event on publish without data", function() {
-        mediator.publish('main-menu');
+    it("emits an event on emit without data", function() {
+        mediator.emit('main-menu');
         expect(this.callback).toHaveBeenCalledWith();
     });
 });

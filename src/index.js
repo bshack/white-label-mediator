@@ -9,19 +9,29 @@ import util from 'util';
     MEDIATOR
     */
 
-    const Mediator = function(modelData) {
+    let baseMediator = {
+        initialize: () => {}
+    };
 
-        // this is called whenever the mediator is instantiated
-        this.initialize = () => {};
+    const Mediator = function(overrideMediator) {
 
-        this.publish = this.emit;
+        let overrideProp;
+        let baseProp;
 
-        this.subscribe = this.on;
+        //extend he base view with overrides
+        for (overrideProp in overrideMediator) {
+            baseMediator[overrideProp] = overrideMediator[overrideProp];
+        }
+
+        //add view properties to this
+        for (baseProp in baseMediator) {
+            this[baseProp] = baseMediator[baseProp];
+        }
 
         // run it on instantiation
         this.initialize();
 
-        this.publish('initialized');
+        this.emit('initialized');
 
     };
 
