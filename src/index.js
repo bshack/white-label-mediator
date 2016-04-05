@@ -18,7 +18,7 @@ import util from 'util';
         let overrideProp;
         let baseProp;
 
-        //extend he base view with overrides
+        //extend base mediator
         for (overrideProp in overrideMediator) {
             baseMediator[overrideProp] = overrideMediator[overrideProp];
         }
@@ -30,8 +30,6 @@ import util from 'util';
 
         // run it on instantiation
         this.initialize();
-
-        this.emit('initialized');
 
     };
 

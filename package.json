@@ -1,6 +1,6 @@
 {
     "name": "white-label-mediator",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "A simple JS mediator that allows communication between views.",
     "main": "dist/index.js",
     "scripts": {

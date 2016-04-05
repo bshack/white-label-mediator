@@ -40,7 +40,7 @@
             var overrideProp = void 0;
             var baseProp = void 0;
 
-            //extend he base view with overrides
+            //extend base mediator
             for (overrideProp in overrideMediator) {
                 baseMediator[overrideProp] = overrideMediator[overrideProp];
             }
@@ -52,8 +52,6 @@
 
             // run it on instantiation
             this.initialize();
-
-            this.emit('initialized');
         };
 
         // this sets up the events
