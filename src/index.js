@@ -1,6 +1,4 @@
 import EventEmitter from 'events';
-import util from 'util';
-
 
 (() => {
 
@@ -13,7 +11,7 @@ import util from 'util';
     const Mediator = class extends EventEmitter {
 
         constructor() {
-            
+
             super();
             this.initialize();
 

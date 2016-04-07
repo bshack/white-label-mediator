@@ -1,21 +1,19 @@
 (function (global, factory) {
     if (typeof define === "function" && define.amd) {
-        define(['module', 'events', 'util'], factory);
+        define(['module', 'events'], factory);
     } else if (typeof exports !== "undefined") {
-        factory(module, require('events'), require('util'));
+        factory(module, require('events'));
     } else {
         var mod = {
             exports: {}
         };
-        factory(mod, global.events, global.util);
+        factory(mod, global.events);
         global.index = mod.exports;
     }
-})(this, function (module, _events, _util) {
+})(this, function (module, _events) {
     'use strict';
 
     var _events2 = _interopRequireDefault(_events);
-
-    var _util2 = _interopRequireDefault(_util);
 
     function _interopRequireDefault(obj) {
         return obj && obj.__esModule ? obj : {
