@@ -102,5 +102,5 @@
         }(_events2.default);
 
         module.exports = Mediator;
-    })();
+    })(_events2.default);
 });
