@@ -4,7 +4,9 @@
 
 A simple ES6 JS mediator that allows communication between views.
 
-Learn more about ES6 classes here: https://babeljs.io/docs/learn-es2015/
+Learn more about ES6 classes here:
+
+https://babeljs.io/docs/learn-es2015/
 
 Events are emited using Node.js' events module. For more options on how to listen to events please look at the Node.js documentation:
 
@@ -30,7 +32,9 @@ import Mediator from 'white-label-mediator';
 var myMediator = new Mediator();
 ```
 
-or extend the Mediator class for your own needs:
+## Extend
+
+extend the Mediator class for your own needs:
 
 ```
 const MyMediator = class extends Mediator {
@@ -75,10 +79,5 @@ const MyMediator = class extends Mediator {
     initialize() {
         console.log('view has initialized');
     }
-    someGreatFeature() {
-        console.log('this is great!');
-    }
 };
-
-const myMediator = new MyMediator();
 ```

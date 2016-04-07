@@ -27,4 +27,4 @@ import EventEmitter from 'events';
 
     module.exports = Mediator;
 
-})();
+})(EventEmitter);
