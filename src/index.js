@@ -1,41 +1,32 @@
 import EventEmitter from 'events';
 import util from 'util';
 
-((EventEmitter, util) => {
+
+(() => {
 
     'use strict';
 
     /*
-    MEDIATOR
+    VIEW
     */
 
-    let baseMediator = {
-        initialize: () => {}
-    };
+    const Mediator = class extends EventEmitter {
 
-    const Mediator = function(overrideMediator) {
+        constructor() {
+            
+            super();
+            this.initialize();
 
-        let overrideProp;
-        let baseProp;
-
-        //extend base mediator
-        for (overrideProp in overrideMediator) {
-            baseMediator[overrideProp] = overrideMediator[overrideProp];
         }
 
-        //add view properties to this
-        for (baseProp in baseMediator) {
-            this[baseProp] = baseMediator[baseProp];
+        initialize() {
+
+            return this;
+
         }
 
-        // run it on instantiation
-        this.initialize();
-
     };
-
-    // this sets up the events
-    util.inherits(Mediator, EventEmitter);
 
     module.exports = Mediator;
 
-})(EventEmitter, util);
+})();

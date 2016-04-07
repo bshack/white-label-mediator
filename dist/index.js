@@ -23,40 +23,86 @@
         };
     }
 
-    (function (EventEmitter, util) {
+    function _classCallCheck(instance, Constructor) {
+        if (!(instance instanceof Constructor)) {
+            throw new TypeError("Cannot call a class as a function");
+        }
+    }
+
+    var _createClass = function () {
+        function defineProperties(target, props) {
+            for (var i = 0; i < props.length; i++) {
+                var descriptor = props[i];
+                descriptor.enumerable = descriptor.enumerable || false;
+                descriptor.configurable = true;
+                if ("value" in descriptor) descriptor.writable = true;
+                Object.defineProperty(target, descriptor.key, descriptor);
+            }
+        }
+
+        return function (Constructor, protoProps, staticProps) {
+            if (protoProps) defineProperties(Constructor.prototype, protoProps);
+            if (staticProps) defineProperties(Constructor, staticProps);
+            return Constructor;
+        };
+    }();
+
+    function _possibleConstructorReturn(self, call) {
+        if (!self) {
+            throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+        }
+
+        return call && (typeof call === "object" || typeof call === "function") ? call : self;
+    }
+
+    function _inherits(subClass, superClass) {
+        if (typeof superClass !== "function" && superClass !== null) {
+            throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+        }
+
+        subClass.prototype = Object.create(superClass && superClass.prototype, {
+            constructor: {
+                value: subClass,
+                enumerable: false,
+                writable: true,
+                configurable: true
+            }
+        });
+        if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+    }
+
+    (function () {
 
         'use strict';
 
         /*
-        MEDIATOR
+        VIEW
         */
 
-        var baseMediator = {
-            initialize: function initialize() {}
-        };
+        var Mediator = function (_EventEmitter) {
+            _inherits(Mediator, _EventEmitter);
 
-        var Mediator = function Mediator(overrideMediator) {
+            function Mediator() {
+                _classCallCheck(this, Mediator);
 
-            var overrideProp = void 0;
-            var baseProp = void 0;
+                var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Mediator).call(this));
 
-            //extend base mediator
-            for (overrideProp in overrideMediator) {
-                baseMediator[overrideProp] = overrideMediator[overrideProp];
+                _this.initialize();
+
+                return _this;
             }
 
-            //add view properties to this
-            for (baseProp in baseMediator) {
-                this[baseProp] = baseMediator[baseProp];
-            }
+            _createClass(Mediator, [{
+                key: 'initialize',
+                value: function initialize() {
 
-            // run it on instantiation
-            this.initialize();
-        };
+                    return this;
+                }
+            }]);
 
-        // this sets up the events
-        util.inherits(Mediator, EventEmitter);
+            return Mediator;
+        }(_events2.default);
 
         module.exports = Mediator;
-    })(_events2.default, _util2.default);
+    })();
 });

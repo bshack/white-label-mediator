@@ -12,9 +12,18 @@ describe("A suite", function() {
 
 describe("A Mediator", function() {
     beforeEach(function() {
-        mediator = new Mediator({
-            extendedFunction: function() {}
-        });
+        let self = this;
+        this.initFunction = function() {};
+        spyOn(this,'initFunction');
+        const MediatorTest = class extends Mediator {
+            initialize() {
+                self.initFunction();
+            }
+            extendedFunction() {
+
+            }
+        };
+        mediator = new MediatorTest();
         this.callback = function(data) {};
         spyOn(this, 'callback');
         mediator.on('main-menu', this.callback);
@@ -52,6 +61,9 @@ describe("A Mediator", function() {
     it("emits an event on emit without data", function() {
         mediator.emit('main-menu');
         expect(this.callback).toHaveBeenCalledWith();
+    });
+    it("executes the initialize function on Instantiation", function() {
+        expect(this.initFunction).toHaveBeenCalled();
     });
     it("is extendable", function() {
         expect(mediator.extendedFunction).toEqual(jasmine.any(Function));

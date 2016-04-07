@@ -1,6 +1,6 @@
 {
   "name": "white-label-mediator",
-  "description": "A simple JS mediator that allows communication between views.",
+  "description": "A simple ES6 JS mediator that allows communication between views.",
   "main": "dist/index.js",
   "authors": [
     "bshack"
@@ -19,5 +19,5 @@
     "**/.*",
     "node_modules"
   ],
-  "version": "1.0.3"
+  "version": "1.0.4"
 }

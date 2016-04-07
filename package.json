@@ -1,7 +1,7 @@
 {
     "name": "white-label-mediator",
-    "version": "1.0.3",
-    "description": "A simple JS mediator that allows communication between views.",
+    "version": "1.0.4",
+    "description": "A simple ES6 JS mediator that allows communication between views.",
     "main": "dist/index.js",
     "scripts": {
         "postinstall": "./node_modules/babel-cli/bin/babel.js ./src/index.js --out-file ./dist/index.js",
