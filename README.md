@@ -66,7 +66,7 @@ Nothing will happen if you publish a message that no other views are subscribed 
 
 ## Initialize
 
-At instantiation the initialize functions will execute if defined:
+At instantiation the initialize function will execute if defined:
 
 ```
 const MyMediator = class extends Mediator {
