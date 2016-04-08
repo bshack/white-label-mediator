@@ -62,7 +62,8 @@ describe("A Mediator", function() {
         mediator.emit('main-menu');
         expect(this.callback).toHaveBeenCalledWith();
     });
-    it("executes the initialize function on Instantiation", function() {
+    it("executes the initialize function", function() {
+        mediator.initialize();
         expect(this.initFunction).toHaveBeenCalled();
     });
     it("is extendable", function() {

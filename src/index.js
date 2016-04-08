@@ -13,7 +13,6 @@ import EventEmitter from 'events';
         constructor() {
 
             super();
-            this.initialize();
 
         }
 

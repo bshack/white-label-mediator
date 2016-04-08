@@ -69,15 +69,3 @@ myMediator.emit('main-menu', {
 ```
 
 Nothing will happen if you publish a message that no other views are subscribed to.
-
-## Initialize
-
-At instantiation the initialize function will execute if defined:
-
-```
-const MyMediator = class extends Mediator {
-    initialize() {
-        console.log('view has initialized');
-    }
-};
-```

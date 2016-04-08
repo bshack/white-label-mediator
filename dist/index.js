@@ -83,11 +83,7 @@
             function Mediator() {
                 _classCallCheck(this, Mediator);
 
-                var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(Mediator).call(this));
-
-                _this.initialize();
-
-                return _this;
+                return _possibleConstructorReturn(this, Object.getPrototypeOf(Mediator).call(this));
             }
 
             _createClass(Mediator, [{
