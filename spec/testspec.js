@@ -66,6 +66,11 @@ describe("A Mediator", function() {
         mediator.initialize();
         expect(this.initFunction).toHaveBeenCalled();
     });
+    it("executes the initialize function and returns 'this'", function() {
+        let mediator = new Mediator();
+        let result = mediator.initialize();
+        expect(result).toEqual(jasmine.any(Object));
+    });
     it("is extendable", function() {
         expect(mediator.extendedFunction).toEqual(jasmine.any(Function));
     });
