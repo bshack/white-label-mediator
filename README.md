@@ -29,7 +29,7 @@ import Mediator from 'white-label-mediator';
 ## Instantiate
 
 ```
-var myMediator = new Mediator();
+const myMediator = new Mediator();
 ```
 
 ## Extend
