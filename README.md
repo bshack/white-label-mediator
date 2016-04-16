@@ -53,7 +53,7 @@ myMediator.someGreatFeature();
 In a separate view you subscribe to a message that the mediator will publish from another view. The first argument is the name of the message you want to subscribe to. The second argument in the callback.
 
 ```
-myMediator.on('main-menu', function(data){
+myMediator.on('main-menu', (data) => {
     window.console.log(data);
 });
 ```
