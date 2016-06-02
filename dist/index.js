@@ -92,6 +92,12 @@
 
                     return this;
                 }
+            }, {
+                key: 'destroy',
+                value: function destroy() {
+
+                    return this;
+                }
             }]);
 
             return Mediator;
