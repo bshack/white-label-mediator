@@ -89,7 +89,7 @@ import View from 'white-label-view';
 create the first view to listen to the mediator for a 'window-scrolling' message
 ```
 const MyView1 = class extends View {
-    Initialization() {
+    initialize() {
         this.addListeners();
     }
     addListeners() {
@@ -102,7 +102,7 @@ const MyView1 = class extends View {
 create the second view to emit through the mediator the 'window-scrolling' event as the window scrolls and pass the event object along
 ```
 const MyView2 = class extends View {
-    Initialization() {
+    initialize() {
         this.addListeners();
     }
     addListeners() {
@@ -116,4 +116,9 @@ instantiate the views
 ```
 const myView1 = new MyView1();
 const myView2 = new MyView2();
+```
+initialize the views
+```
+myView1.initialize();
+myView2.initialize();
 ```
