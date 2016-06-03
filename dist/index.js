@@ -73,10 +73,6 @@
 
         'use strict';
 
-        /*
-        VIEW
-        */
-
         var Mediator = function (_EventEmitter) {
             _inherits(Mediator, _EventEmitter);
 
