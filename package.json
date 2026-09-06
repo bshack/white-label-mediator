@@ -1,54 +1,57 @@
 {
-    "name":"white-label-mediator",
-    "version":"1.0.11",
-    "description":"A simple ES6 JS mediator that allows communication between views.",
-    "main":"dist/index.js",
-    "files":["dist","README.md"],
-    "engines":{
-        "node":">=20.0",
-        "npm":">=10.0"
+    "name": "white-label-mediator",
+    "version": "2.0.0",
+    "description": "A simple ES6 JS mediator that allows communication between views.",
+    "main": "dist/index.js",
+    "files": [
+        "dist",
+        "README.md"
+    ],
+    "engines": {
+        "node": ">=20.0",
+        "npm": ">=10.0"
     },
-    "contributors":[
+    "contributors": [
         {
-            "name":"Bill Shackelford",
-            "email":"bshackelford@gmail.com",
-            "url":"https://github.com/bshack"
+            "name": "Bill Shackelford",
+            "email": "bshackelford@gmail.com",
+            "url": "https://github.com/bshack"
         }
     ],
-    "scripts":{
-        "build":"babel src/index.js --out-file dist/index.js",
-        "test":"jasmine",
-        "audit":"npm audit --audit-level=high"
+    "scripts": {
+        "build": "babel src/index.js --out-file dist/index.js",
+        "test": "jasmine",
+        "audit": "npm audit --audit-level=high"
     },
-    "repository":{
-        "type":"git",
-        "url":"git+https://github.com/bshack/white-label-mediator.git"
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/bshack/white-label-mediator.git"
     },
-    "keywords":[
+    "keywords": [
         "javascript",
         "js",
         "mediator",
         "es6",
         "es2015"
     ],
-    "author":{
-        "name":"Bill Shackelford",
-        "email":"bshackelford@gmail.com",
-        "url":"https://github.com/bshack"
+    "author": {
+        "name": "Bill Shackelford",
+        "email": "bshackelford@gmail.com",
+        "url": "https://github.com/bshack"
     },
-    "license":"MIT",
-    "bugs":{
-        "url":"https://github.com/bshack/white-label-mediator/issues"
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/bshack/white-label-mediator/issues"
     },
-    "homepage":"https://github.com/bshack/white-label-mediator#readme",
-    "dependencies":{
-        "events":"3.3.0"
+    "homepage": "https://github.com/bshack/white-label-mediator#readme",
+    "dependencies": {
+        "events": "3.3.0"
     },
-    "devDependencies":{
-        "@babel/cli":"7.28.3",
-        "@babel/core":"7.29.7",
-        "@babel/plugin-transform-modules-umd":"7.27.1",
-        "@babel/preset-env":"7.28.3",
-        "jasmine":"7.0.0"
+    "devDependencies": {
+        "@babel/cli": "7.28.3",
+        "@babel/core": "7.29.7",
+        "@babel/plugin-transform-modules-umd": "7.27.1",
+        "@babel/preset-env": "7.28.3",
+        "jasmine": "7.0.0"
     }
 }
