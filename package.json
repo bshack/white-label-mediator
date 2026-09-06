@@ -3,6 +3,7 @@
     "version":"1.0.11",
     "description":"A simple ES6 JS mediator that allows communication between views.",
     "main":"dist/index.js",
+    "files":["dist","README.md"],
     "engines":{
         "node":">=20.0",
         "npm":">=10.0"

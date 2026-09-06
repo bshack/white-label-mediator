@@ -45,6 +45,8 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
       }, {
         key: "destroy",
         value: function destroy() {
+          // Release subscriber references when a mediator leaves the application lifecycle.
+          this.removeAllListeners();
           return this;
         }
       }]);

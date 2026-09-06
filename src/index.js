@@ -20,8 +20,10 @@ import EventEmitter from 'events';
 
         destroy() {
 
-            return this;
+            // Release subscriber references when a mediator leaves the application lifecycle.
+            this.removeAllListeners();
 
+            return this;
         }
 
     };
