@@ -71,6 +71,10 @@ describe("A Mediator", function() {
         let result = mediator.initialize();
         expect(result).toEqual(jasmine.any(Object));
     });
+    it("removes event listeners when destroyed", function() {
+        mediator.destroy();
+        expect(mediator.listenerCount('main-menu')).toEqual(0);
+    });
     it("is extendable", function() {
         expect(mediator.extendedFunction).toEqual(jasmine.any(Function));
     });
