@@ -1,124 +1,108 @@
 # white-label-mediator
 
-[![Build Status](https://travis-ci.org/bshack/white-label-mediator.svg?branch=master)](https://travis-ci.org/bshack/white-label-mediator) [![Coverage Status](https://coveralls.io/repos/github/bshack/white-label-mediator/badge.svg?branch=master)](https://coveralls.io/github/bshack/white-label-mediator?branch=master)
+`white-label-mediator` is a small application event bus. It lets otherwise independent models, views, and routers exchange named messages without importing or calling one another directly.
 
-A simple ES6 JS mediator that allows communication between views.
+The class extends Node.js-compatible `EventEmitter`, supplied for browsers by the `events` package. Standard methods such as `on`, `once`, `emit`, `removeListener`, and `removeAllListeners` are available.
 
-A mediator pattern (also sometimes called pub/sub) is an event bus for messaging between views. It's strength is in that it decouples views from one another because you are not directly binding events between views. You simply are broadcasting a message through the mediator that other views throughout the application can listen and react to as needed.
+## Requirements
 
-Events are emited using Node.js' events module. For more options on how to listen to events please look at the Node.js documentation:
+- Node.js `^22.18.0` or `>=24.11.0` for installation and development
 
-https://nodejs.org/api/events.html
+## Install and import
 
-Learn more about ES6 classes here:
-
-https://babeljs.io/docs/learn-es2015/
-
-## Install
-
-Install the node module:
-
-```
-npm install white-label-mediator --save
+```sh
+npm install white-label-mediator
 ```
 
-## Import
-
-```
+```js
 import Mediator from 'white-label-mediator';
+
+const mediator = new Mediator();
 ```
 
-## Instantiate
+## Publish and subscribe
 
-```
-const myMediator = new Mediator();
-```
+One part of the application subscribes to a named event:
 
-## Extend
+```js
+function updateMenu({open}) {
+    document.querySelector('#main-menu').hidden = !open;
+}
 
-extend the Mediator class for your own needs:
-
-```
-const MyMediator = class extends Mediator {
-    someGreatFeature() {
-        console.log('this is great!');
-    }
-};
-
-const myMediator = new MyMediator();
-
-myMediator.someGreatFeature();
+mediator.on('menu:state', updateMenu);
 ```
 
-## On
+Another part publishes the event and its data:
 
-In a separate view you subscribe to a message that the mediator will publish from another view. The first argument is the name of the message you want to subscribe to. The second argument in the callback.
-
+```js
+mediator.emit('menu:state', {open: true});
 ```
-myMediator.on('main-menu', (data) => {
-    window.console.log(data);
+
+The publisher does not need to know which components are listening. Emitting an event with no subscribers is valid and simply has no effect.
+
+## Remove subscriptions
+
+Keep a reference to each callback so it can be removed during component teardown:
+
+```js
+mediator.removeListener('menu:state', updateMenu);
+```
+
+For a listener that should run only once:
+
+```js
+mediator.once('application:ready', () => {
+    console.log('The application is ready.');
 });
 ```
 
-## Emit
+## Application lifecycle
 
-In a separate view you publish message that other views are subscribed too. The first argument is the name of the message you want to publish. The second argument is data you can pass along with your message event and is optional. The data passed can be any data type.
+`initialize()` is a lifecycle hook and returns the mediator. `destroy()` removes every listener registered on that mediator instance and returns it:
 
+```js
+mediator.initialize();
+
+// Later, when the entire event bus is no longer needed:
+mediator.destroy();
 ```
-myMediator.emit('main-menu', {
-    state: 'open'
+
+Only call `destroy()` when the mediator itself is leaving the application. Individual views should remove their own callbacks with `removeListener()` so they do not accidentally unsubscribe other components.
+
+## Extend the mediator
+
+```js
+import Mediator from 'white-label-mediator';
+
+class ApplicationMediator extends Mediator {
+    notifyError(error) {
+        this.emit('application:error', {message: error.message});
+    }
+}
+
+const applicationMediator = new ApplicationMediator();
+applicationMediator.on('application:error', console.error);
+applicationMediator.notifyError(new Error('Unable to load profile'));
+```
+
+## Use with other White Label packages
+
+`white-label-model` can publish namespaced change events through a mediator, and `white-label-router` can listen for `router:navigate`:
+
+```js
+mediator.emit('router:navigate', {
+    url: '/sign-in',
+    reason: 'The session expired.'
 });
 ```
 
-Nothing will happen if you publish a message that no other views are subscribed to.
+## Development
 
-###Let's look at an example:
+```sh
+npm ci
+npm run build
+npm test
+npm run audit
+```
 
-import the mediator module
-```
-import Mediator from 'white-label-mediator';
-```
-instantiate the mediator
-```
-const myMediator = new Mediator();
-```
-import the view module
-```
-import View from 'white-label-view';
-```
-create the first view to listen to the mediator for a 'window-scrolling' message
-```
-const MyView1 = class extends View {
-    initialize() {
-        this.addListeners();
-    }
-    addListeners() {
-        myMediator.on('window-scrolling', (data) => {
-            window.console.log('MyView2 is messaging that the window is scrolling', data);
-        });
-    }
-};
-```
-create the second view to emit through the mediator the 'window-scrolling' event as the window scrolls and pass the event object along
-```
-const MyView2 = class extends View {
-    initialize() {
-        this.addListeners();
-    }
-    addListeners() {
-        window.addEventListener('scroll', (e) => {
-            myMediator.emit('window-scrolling', e);
-        }, false);
-    }
-};
-```
-instantiate the views
-```
-const myView1 = new MyView1();
-const myView2 = new MyView2();
-```
-initialize the views
-```
-myView1.initialize();
-myView2.initialize();
-```
+The npm package publishes the compiled `dist` file and this README.
