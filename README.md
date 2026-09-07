@@ -4,6 +4,8 @@
 
 The class extends Node.js-compatible `EventEmitter`, supplied for browsers by the `events` package. Standard methods such as `on`, `once`, `emit`, `removeListener`, and `removeAllListeners` are available.
 
+The mediator has no DOM or generated HTML, so it does not independently affect WCAG conformance or indexing. Applications must ensure mediated UI updates preserve keyboard focus, announce meaningful asynchronous status, and do not make primary public content dependent on client-only events.
+
 ## Requirements
 
 - Node.js `^22.18.0` or `>=24.11.0` for installation and development

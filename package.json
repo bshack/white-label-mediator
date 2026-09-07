@@ -1,6 +1,6 @@
 {
   "name": "white-label-mediator",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A simple ES6 JS mediator that allows communication between views.",
   "main": "dist/index.js",
   "files": [
@@ -50,10 +50,10 @@
   },
   "homepage": "https://github.com/bshack/white-label-mediator#readme",
   "dependencies": {
-    "events": "3.3.0",
-    "@types/node": "24.13.3"
+    "events": "3.3.0"
   },
   "devDependencies": {
+    "@types/node": "24.13.3",
     "c8": "12.0.0",
     "jasmine": "7.0.0",
     "typescript": "7.0.2"
