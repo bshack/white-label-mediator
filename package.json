@@ -1,57 +1,84 @@
 {
-    "name": "white-label-mediator",
-    "version": "2.0.1",
-    "description": "A simple ES6 JS mediator that allows communication between views.",
-    "main": "dist/index.js",
-    "files": [
-        "dist",
-        "README.md"
-    ],
-    "engines": {
-        "node": "^22.18.0 || >=24.11.0",
-        "npm": ">=10.0"
-    },
-    "contributors": [
-        {
-            "name": "Bill Shackelford",
-            "email": "bshackelford@gmail.com",
-            "url": "https://github.com/bshack"
-        }
-    ],
-    "scripts": {
-        "build": "babel src/index.js --out-file dist/index.js",
-        "test": "jasmine",
-        "audit": "npm audit --audit-level=high"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/bshack/white-label-mediator.git"
-    },
-    "keywords": [
-        "javascript",
-        "js",
-        "mediator",
-        "es6",
-        "es2015"
-    ],
-    "author": {
-        "name": "Bill Shackelford",
-        "email": "bshackelford@gmail.com",
-        "url": "https://github.com/bshack"
-    },
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/bshack/white-label-mediator/issues"
-    },
-    "homepage": "https://github.com/bshack/white-label-mediator#readme",
-    "dependencies": {
-        "events": "3.3.0"
-    },
-    "devDependencies": {
-        "@babel/cli": "8.0.4",
-        "@babel/core": "8.0.1",
-        "@babel/plugin-transform-modules-umd": "8.0.1",
-        "@babel/preset-env": "8.0.2",
-        "jasmine": "7.0.0"
+  "name": "white-label-mediator",
+  "version": "3.0.0",
+  "description": "A simple ES6 JS mediator that allows communication between views.",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": "^22.18.0 || >=24.11.0",
+    "npm": ">=10.0"
+  },
+  "contributors": [
+    {
+      "name": "Bill Shackelford",
+      "email": "bshackelford@gmail.com",
+      "url": "https://github.com/bshack"
     }
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && npm run test:types && npm run test:unit",
+    "audit": "npm audit --audit-level=high",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "jasmine",
+    "coverage": "npm run build && npm run test:types && c8 npm run test:unit",
+    "prepack": "npm run build",
+    "test:types": "tsc -p tsconfig.consumer.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bshack/white-label-mediator.git"
+  },
+  "keywords": [
+    "javascript",
+    "js",
+    "mediator",
+    "es6",
+    "es2015"
+  ],
+  "author": {
+    "name": "Bill Shackelford",
+    "email": "bshackelford@gmail.com",
+    "url": "https://github.com/bshack"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bshack/white-label-mediator/issues"
+  },
+  "homepage": "https://github.com/bshack/white-label-mediator#readme",
+  "dependencies": {
+    "events": "3.3.0",
+    "@types/node": "24.13.3"
+  },
+  "devDependencies": {
+    "c8": "12.0.0",
+    "jasmine": "7.0.0",
+    "typescript": "7.0.2"
+  },
+  "types": "dist/index.d.ts",
+  "c8": {
+    "all": true,
+    "include": [
+      "src/**/*.ts"
+    ],
+    "reporter": [
+      "text",
+      "json",
+      "json-summary",
+      "lcov"
+    ],
+    "excludeAfterRemap": true,
+    "checkCoverage": true,
+    "lines": 100,
+    "functions": 100,
+    "branches": 100,
+    "statements": 100,
+    "perFile": true,
+    "exclude": [
+      "**/*.d.ts"
+    ]
+  }
 }
