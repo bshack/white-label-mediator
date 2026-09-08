@@ -4,7 +4,38 @@ import EventEmitter from 'events';
 
 
 
-class Mediator extends EventEmitter {
+type EventArguments<T> = T extends unknown[] ? T : never;
+
+/** Synchronous event bus with optional compile-time event and payload contracts. */
+class Mediator<Events extends object = Record<string | symbol, any[]>> extends EventEmitter {
+
+    override on<Name extends keyof Events & (string | symbol)>(
+        eventName: Name,
+        listener: (...arguments_: EventArguments<Events[Name]>) => void
+    ): this {
+        return super.on(eventName, listener);
+    }
+
+    override once<Name extends keyof Events & (string | symbol)>(
+        eventName: Name,
+        listener: (...arguments_: EventArguments<Events[Name]>) => void
+    ): this {
+        return super.once(eventName, listener);
+    }
+
+    override emit<Name extends keyof Events & (string | symbol)>(
+        eventName: Name,
+        ...arguments_: EventArguments<Events[Name]>
+    ): boolean {
+        return super.emit(eventName, ...arguments_);
+    }
+
+    override removeListener<Name extends keyof Events & (string | symbol)>(
+        eventName: Name,
+        listener: (...arguments_: EventArguments<Events[Name]>) => void
+    ): this {
+        return super.removeListener(eventName, listener);
+    }
 
     /**
      * Create an instance with its own state and listener references.
