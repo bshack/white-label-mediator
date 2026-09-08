@@ -1,6 +1,12 @@
 /** @module src/index */
 import EventEmitter from 'events';
-declare class Mediator extends EventEmitter {
+type EventArguments<T> = T extends unknown[] ? T : never;
+/** Synchronous event bus with optional compile-time event and payload contracts. */
+declare class Mediator<Events extends object = Record<string | symbol, any[]>> extends EventEmitter {
+    on<Name extends keyof Events & (string | symbol)>(eventName: Name, listener: (...arguments_: EventArguments<Events[Name]>) => void): this;
+    once<Name extends keyof Events & (string | symbol)>(eventName: Name, listener: (...arguments_: EventArguments<Events[Name]>) => void): this;
+    emit<Name extends keyof Events & (string | symbol)>(eventName: Name, ...arguments_: EventArguments<Events[Name]>): boolean;
+    removeListener<Name extends keyof Events & (string | symbol)>(eventName: Name, listener: (...arguments_: EventArguments<Events[Name]>) => void): this;
     /**
      * Create an instance with its own state and listener references.
      */

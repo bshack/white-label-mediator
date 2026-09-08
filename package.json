@@ -1,6 +1,6 @@
 {
   "name": "white-label-mediator",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "A simple ES6 JS mediator that allows communication between views.",
   "main": "dist/index.js",
   "files": [
@@ -14,7 +14,6 @@
   "contributors": [
     {
       "name": "Bill Shackelford",
-      "email": "bshackelford@gmail.com",
       "url": "https://github.com/bshack"
     }
   ],
@@ -41,7 +40,6 @@
   ],
   "author": {
     "name": "Bill Shackelford",
-    "email": "bshackelford@gmail.com",
     "url": "https://github.com/bshack"
   },
   "license": "MIT",

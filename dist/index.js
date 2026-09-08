@@ -4,7 +4,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 /** @module src/index */
 const events_1 = __importDefault(require("events"));
+/** Synchronous event bus with optional compile-time event and payload contracts. */
 class Mediator extends events_1.default {
+    on(eventName, listener) {
+        return super.on(eventName, listener);
+    }
+    once(eventName, listener) {
+        return super.once(eventName, listener);
+    }
+    emit(eventName, ...arguments_) {
+        return super.emit(eventName, ...arguments_);
+    }
+    removeListener(eventName, listener) {
+        return super.removeListener(eventName, listener);
+    }
     /**
      * Create an instance with its own state and listener references.
      */

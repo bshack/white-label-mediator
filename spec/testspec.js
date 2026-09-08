@@ -75,6 +75,17 @@ describe("A Mediator", function() {
         mediator.destroy();
         expect(mediator.listenerCount('main-menu')).toEqual(0);
     });
+    it("supports one-time and explicitly removed typed listeners", function() {
+        const callback = jasmine.createSpy('typed callback');
+        mediator.once('ready', callback);
+        mediator.emit('ready', 'Ada');
+        mediator.emit('ready', 'Grace');
+        expect(callback).toHaveBeenCalledOnceWith('Ada');
+        mediator.on('stopped', callback);
+        mediator.removeListener('stopped', callback);
+        mediator.emit('stopped');
+        expect(callback).toHaveBeenCalledTimes(1);
+    });
     it("is extendable", function() {
         expect(mediator.extendedFunction).toEqual(jasmine.any(Function));
     });

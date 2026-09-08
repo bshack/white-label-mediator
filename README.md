@@ -130,6 +130,10 @@ This is a major release because the distribution is now CommonJS emitted by Type
 
 ### Verification and coverage
 
+## Tested compatibility
+
+Version 3.1 is tested with model 3.x, view 4.x, and router 4.x. It retains the standard synchronous EventEmitter behavior.
+
 ```sh
 npm ci --ignore-scripts
 npm run typecheck
@@ -143,3 +147,12 @@ npm pack --dry-run
 Tests exercise the compiled JavaScript interface used by downstream callers. Coverage is an execution metric, not proof that all possible inputs or external integrations are correct.
 
 To undo this migration, revert its commit and run `npm ci` from the restored lockfile. No npm release, database migration, or production deployment is performed by these development changes.
+### Typed events
+
+Supply an event map for compile-time event names and payloads without adding runtime code:
+
+```ts
+type Events = {ready: [name: string]; stopped: []};
+const mediator = new Mediator<Events>();
+mediator.emit('ready', 'Ada');
+```
