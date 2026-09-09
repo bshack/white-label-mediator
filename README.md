@@ -100,6 +100,8 @@ mediator.emit('router:navigate', {
 
 ## Development
 
+Tests live in `test/*.test.js` and use Node's built-in `node:test` runner, strict assertions, and native mocks. Run `npm test` for the build, consumer type checks, and full suite; `npm run coverage` retains the existing c8 coverage gate. After building, run `node --test test/mediator.test.js` for the converted suite alone.
+
 ```sh
 npm ci
 npm run build
