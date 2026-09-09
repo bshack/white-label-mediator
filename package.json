@@ -48,12 +48,13 @@
   },
   "homepage": "https://github.com/bshack/white-label-mediator#readme",
   "dependencies": {
-    "events": "3.3.0"
+    "eventemitter3": "5.0.4"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
     "c8": "12.0.0",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "events": "3.3.0"
   },
   "types": "dist/index.d.ts",
   "c8": {
@@ -77,5 +78,8 @@
     "exclude": [
       "**/*.d.ts"
     ]
+  },
+  "browser": {
+    "./dist/event-emitter.js": "./dist/browser-event-emitter.js"
   }
 }

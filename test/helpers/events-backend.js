@@ -21,7 +21,7 @@ function loadPackage(EventEmitter) {
         const module = {exports: {}};
         cache.set(filename, module);
         function requireDependency(id) {
-            if (id === 'events') return EventEmitter;
+            if (id === './event-emitter') return EventEmitter;
             assert.ok(id.startsWith('./'), `Unexpected dependency: ${id}`);
             return load(createRequire(filename).resolve(id));
         }
@@ -33,4 +33,4 @@ function loadPackage(EventEmitter) {
     return load(path.join(root, 'index.js'));
 }
 
-module.exports = {loadPackage, backends: [['Node', nativeEvents], ['npm browser implementation', browserEvents]]};
+module.exports = {loadPackage, backends: [['Node', nativeEvents], ['npm browser implementation', browserEvents], ['EventEmitter3 adapter', require('../../dist/browser-event-emitter')]]};

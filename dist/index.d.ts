@@ -1,5 +1,5 @@
 /** @module src/index */
-import EventEmitter from 'events';
+import EventEmitter = require('./event-emitter');
 type EventArguments<T> = T extends unknown[] ? T : never;
 /** Synchronous event bus with optional compile-time event and payload contracts. */
 declare class Mediator<Events extends object = Record<string | symbol, any[]>> extends EventEmitter {

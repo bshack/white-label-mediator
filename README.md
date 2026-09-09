@@ -100,7 +100,7 @@ mediator.emit('router:navigate', {
 
 ## Event backend compatibility
 
-The test suite also loads the npm browser implementation explicitly and checks it against the same EventEmitter contract as Node. See [the compatibility contract and replacement assessment](https://github.com/bshack/white-label-mediator/blob/master/docs/events-compatibility.md) for covered behavior and limitations. These checks run under Node and do not replace real-browser integration testing.
+Node uses its built-in EventEmitter. Browser-aware bundlers select an EventEmitter3 compatibility adapter through the package's `browser` mapping. Tests compare Node, the previous npm emitter, and the adapter. See [the compatibility contract and browser verification instructions](https://github.com/bshack/white-label-mediator/blob/master/docs/events-compatibility.md) for supported behavior, maintenance responsibilities, and limitations.
 
 ## Development
 

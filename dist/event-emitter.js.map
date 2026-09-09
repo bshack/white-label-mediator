@@ -1,0 +1,1 @@
+{"version":3,"file":"event-emitter.js","sourceRoot":"","sources":["../src/event-emitter.ts"],"names":[],"mappings":";;;;AAAA,uFAAuF;AACvF,8DAAuC;AACvC,iBAAS,qBAAY,CAAC","sourcesContent":["// Node retains its full native EventEmitter API; browser bundlers replace this module.\nimport EventEmitter from 'node:events';\nexport = EventEmitter;\n"]}

@@ -1,58 +1,54 @@
-# EventEmitter compatibility and dependency assessment
+# Event backend compatibility
 
-## Runtime resolution
+## Runtime selection
 
-White Label imports `events`. Node resolves that name to its built-in EventEmitter; browser bundlers resolve the installed `events` npm package. The lockfile currently selects `events@3.3.0`. Tests that only run the normal package import under Node do not verify the npm implementation.
+Node entry points use `node:events`, preserving native inheritance, static helpers, and public types. The package's `browser` mapping replaces `dist/event-emitter.js` with `dist/browser-event-emitter.js` in browser-aware bundlers. That adapter uses pinned `eventemitter3@5.0.4` for dispatch. `events@3.3.0` is retained only as a development dependency to compare the previous browser behavior; it is no longer a production dependency.
 
-## Contract under test
+Consumers must use a bundler that honors the `browser` field. Loading CommonJS output directly in a browser is not supported. Current Node type declarations do not imply that every Node feature exists in the browser.
 
-`test/events-compatibility.test.js` exercises compiled White Label classes against both implementations using the same contract cases. Preserve these existing behaviors when evaluating replacements:
+## Preserved behavior
 
-- Synchronous, ordered dispatch; listeners receive the emitter as `this`, all arguments, and the original payload references. `emit()` returns whether listeners handled the event.
-- `on`/`addListener`, `once`, `removeListener`/`off`, scoped and complete `removeAllListeners`, and chaining where the inherited API returns the emitter.
-- One-time listeners are removed before invocation, including recursive emission; their original callback can cancel them before execution.
-- Duplicate registrations remain distinct; one removal removes the most recently registered match.
-- Adding/removing listeners during an emission affects subsequent emissions without changing the current listener snapshot.
-- String and symbol event names, prepend methods, `eventNames`, `listeners`, `rawListeners`, and `listenerCount`.
-- `newListener` notification before insertion and `removeListener` notification after removal.
-- Unhandled `error` events throw; handled errors reach their listeners; exceptions thrown by listeners propagate synchronously.
-- Listener argument validation and per-instance maximum-listener settings.
+The same contract cases run through Model/Collection or Mediator with Node, the previous npm browser emitter, and the new adapter:
 
-The package-specific cases also cover lifecycle cleanup. Model/Collection cases cover mutation order, full-state payload identity, silent mutations, invalid Model updates, array/Map collections, and local/namespaced relay using each combination of the two event backends. State teardown must not unsubscribe unrelated mediator listeners.
+- Synchronous ordered dispatch, original payload references, receiver identity, and boolean emit results.
+- Listener aliases and chaining; once listeners, cancellation, and recursive emission.
+- Removal of only the most recently registered duplicate.
+- Stable listener snapshots while dispatch is in progress.
+- String and symbol events, prepend APIs, listener inspection, and scoped/all removal.
+- Listener lifecycle notifications and unhandled error propagation.
+- Listener validation and per-instance listener limits.
+- Lifecycle cleanup; Model/Collection mutation ordering, silent operations, validation, and cross-backend namespaced relay.
 
-This is a regression contract for existing behavior, not a complete implementation of every Node EventEmitter feature. Newer Node-only static helpers, promise rejection capture, exact diagnostics/warning delivery, and every overload are not asserted to work in browsers. Public types inherited from current Node declarations are not by themselves evidence of browser support.
+Additional differential tests cover numeric/prototype-like/empty event names, raw once wrappers, teardown order, and the inherited static `once`, `listenerCount`, and `EventEmitter` helpers. Adapter tests check listener-limit warnings and cleanup. Node 24 and the previous browser package differ in the callback reported during bulk removal of a once listener; each backend retains its existing behavior.
 
-## How the tests select the implementation
+This contract does not claim every modern Node feature in browsers. Capture-rejection options, Node-only static helpers, internal `_events` access, exact error text, and legacy constructor initialization internals are outside the supported browser contract. Node builds retain their native behavior. Browser listener-limit warnings use `console.warn`, as the previous browser implementation did.
 
-The helper explicitly loads `require('events/')` to bypass built-in-module precedence and asserts that it is a different constructor from `require('node:events')`. It loads compiled package modules with an isolated module cache and substitutes only the `events` import. The tests assert that the resulting instances inherit the selected constructor. Global module resolution and the regular tests' require cache are not modified.
+## Adapter design and ownership
 
-The loader uses `vm.compileFunction` with the original filename and source, preserving source-map coordinates for the existing c8 gate. Only local `dist` imports and the selected event backend are allowed; unexpected dependencies fail the test.
+Each event has a registration list and an EventEmitter3 dispatch channel. Mutations replace that channel using EventEmitter3's public API, allowing an active emission to finish using its original snapshot. Once wrappers remove themselves before calling application code. The adapter supplies the compatibility methods EventEmitter3 omits; it does not modify EventEmitter3's internals or global module resolution.
 
-Run `npm test` or `npm run coverage`; the regular `test/*.test.js` command discovers these tests automatically. To run just the compatibility suite after building:
+Rebuilding a channel costs work proportional to that event's listener count on registration/removal. No speed or bundle-size improvement is claimed. Benchmark before using this change as a performance optimization.
+
+Model and Mediator contain identical adapter source and adapter tests. Keep these copies synchronized when fixing compatibility behavior. This avoids introducing a new shared package or forcing Model to depend on a particular Mediator release, but creates an explicit maintenance responsibility.
+
+## Validation
+
+Run `npm test`, `npm run typecheck`, and `npm run coverage`. The 100% per-file coverage gate includes the adapter. The compatibility loader substitutes only the local event-backend boundary, using an isolated cache and original source-map coordinates; ordinary tests exercise the real Node entry point.
+
+`test/browser-smoke.js` is a browser-bundler entry point that imports the package normally. Bundle it with a browser-aware bundler, load the output in a browser, and check `globalThis.whiteLabelSmokePassed === true`. For example, with esbuild installed in a temporary tooling directory:
 
 ```sh
-node --test test/events-compatibility.test.js
+esbuild test/browser-smoke.js --bundle --platform=browser --outfile=/tmp/white-label-smoke.js
 ```
 
-These are dependency-contract tests under Node, not real-browser or bundler tests. They do not establish full browser support, dependency security, or 100% coverage of the third-party emitter. The existing c8 requirement applies to White Label implementation files and remains unchanged.
+Load that output from a local HTML page with a script tag. A thrown error or missing success flag indicates failure. The smoke test covers dispatch, duplicate removal, prepend/once, reentrancy, errors, and destruction. Inspect the bundle input list to confirm EventEmitter3 is included and `events` is absent.
 
-## Replacement assessment
+The implementation was validated with Node 24.19.0, esbuild browser bundles, and smoke tests in the Codex in-app browser. This is not a complete browser-version or bundler matrix. Full downstream applications and performance have not been tested.
 
-Assessment date: September 9, 2026. Candidate differences below come from their published APIs; candidates were not installed or executed in this change.
+## Dependency review
 
-| Option | Compatibility assessment |
-| --- | --- |
-| Keep pinned `events` | Both current backends pass the tested contract. Its README targets Node 11.13's API and describes a small maintenance team. An old release alone does not establish abandonment or a vulnerability. |
-| `eventemitter3` | Not a transparent replacement: it documents different unhandled-error and duplicate-removal behavior, and omits listener lifecycle notifications, prepend methods, and maximum-listener APIs. |
-| `mitt` | Its smaller `on`/`off`/`emit` API is not the inherited EventEmitter interface. It would require adaptation or an intentional public API change. |
-| Native `EventTarget` | Uses `addEventListener`/`removeEventListener`/`dispatchEvent` and event objects; it is not an EventEmitter-compatible substitution. |
-| A White Label-owned emitter | Removes the external dependency but transfers implementation, compatibility, security, and maintenance responsibilities to this project. |
+EventEmitter3 5.0.4 is MIT-licensed. Its documented API differences require the adapter; replacing imports directly fails the existing contract. Installation audits reported no known vulnerabilities. That is a point-in-time check, not a security guarantee.
 
-Recommendation: retain the pinned dependency for now while using these tests as a replacement acceptance gate. Do not silently substitute another emitter. If removing the dependency is a requirement, choose either a compatibility adapter with equivalent behavior and type tests, or an explicitly approved major release with migration documentation. Before adoption, run the candidate through the contract and downstream browser integration, review its current maintenance/security/license status, and preserve the same choice across Model and Mediator where their contracts require it.
-
-Sources:
-
-- [events source and maintenance statement](https://github.com/browserify/events)
-- [EventEmitter3 documented differences](https://github.com/primus/eventemitter3)
-- [mitt API](https://github.com/developit/mitt)
-- [Node EventTarget and EventEmitter comparison](https://nodejs.org/api/events.html#eventtarget-and-event-api)
+- [EventEmitter3 source, license, and API differences](https://github.com/primus/eventemitter3)
+- [Previous browser emitter](https://github.com/browserify/events)
+- [Node EventEmitter API](https://nodejs.org/api/events.html)

@@ -1,11 +1,8 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 /** @module src/index */
-const events_1 = __importDefault(require("events"));
+const EventEmitter = require("./event-emitter");
 /** Synchronous event bus with optional compile-time event and payload contracts. */
-class Mediator extends events_1.default {
+class Mediator extends EventEmitter {
     on(eventName, listener) {
         return super.on(eventName, listener);
     }
