@@ -8,7 +8,7 @@ Verified against `package.json`, `README.md`, and `.github/workflows/security.ym
 
 ## Code map
 
-`src/` contains implementation TypeScript; `spec/` holds Jasmine tests configured by `spec/support/jasmine.json`; `tsconfig.consumer.json` checks consumer types; `dist/index.js` and `dist/index.d.ts` are package entry points.
+`src/` contains implementation TypeScript; `test/` holds Node tests; `tsconfig.consumer.json` checks consumer types; `dist/index.js` and `dist/index.d.ts` are package entry points.
 
 ## Toolchain and checks
 
@@ -22,11 +22,11 @@ npm run coverage
 npm run audit
 ```
 
-`npm test` builds implementation code, checks consumer types, and runs Jasmine. `npm run coverage` enforces 100% statements, branches, functions, and lines per included implementation file. CI also runs `npm run build` and `git diff --exit-code -- dist` to detect committed-output drift.
+`npm test` builds implementation code, checks consumer types, and runs Node tests. `npm run coverage` enforces 100% statements, branches, functions, and lines per included implementation file. CI also runs `npm run build` and `git diff --exit-code -- dist` to detect committed-output drift.
 
 No dedicated lint or format script is defined in the reviewed manifest. Inspect existing configuration before adding tools; report unperformed checks accurately.
 
-For one Jasmine spec, run `npm run build`, then `npm run test:unit -- spec/path/to/ExampleSpec.js`, replacing the example path with an existing spec.
+For one Node test file, first run `npm run build`, then `node --test test/mediator.test.js`. This focused run does not replace the complete coverage check.
 
 ## Local environment and generated files
 

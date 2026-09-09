@@ -1,92 +1,96 @@
 'use strict';
 
+const assert = require('node:assert/strict');
+const {describe, it, beforeEach, afterEach, mock} = require('node:test');
+const {isDeepStrictEqual} = require('node:util');
+
+afterEach(() => mock.restoreAll());
+
 const Mediator = require('../dist/index');
 let mediator = {};
 
 // canary
 describe("A suite", function() {
     it("contains spec with an expectation", function() {
-        expect(true).toBe(true);
+        assert.equal(true, true);
     });
 });
 
 describe("A Mediator", function() {
+    let callback, initFunction;
     beforeEach(function() {
-        let self = this;
-        this.initFunction = function() {};
-        spyOn(this,'initFunction');
+        initFunction = mock.fn();
         const MediatorTest = class extends Mediator {
             initialize() {
-                self.initFunction();
+                initFunction();
             }
             extendedFunction() {
 
             }
         };
         mediator = new MediatorTest();
-        this.callback = function(data) {};
-        spyOn(this, 'callback');
-        mediator.on('main-menu', this.callback);
+        callback = mock.fn();
+        mediator.on('main-menu', callback);
     });
     afterEach(function() {
         mediator = {};
-        delete this.callback;
+        callback = undefined;
     });
     it("is an object", function() {
-        expect(mediator).toEqual(jasmine.any(Object));
+        assert.ok(mediator instanceof Object);
     });
     it("has an initialize function", function() {
-        expect(mediator.initialize).toEqual(jasmine.any(Function));
+        assert.ok(typeof mediator.initialize === 'function');
     });
     it("has a emit function", function() {
-        expect(mediator.emit).toEqual(jasmine.any(Function));
+        assert.ok(typeof mediator.emit === 'function');
     });
     it("has a on function", function() {
-        expect(mediator.on).toEqual(jasmine.any(Function));
+        assert.ok(typeof mediator.on === 'function');
     });
     it("emits an event on emit", function() {
         mediator.emit('main-menu', {
             state: 'open'
         });
-        expect(this.callback).toHaveBeenCalled();
+        assert.ok(callback.mock.callCount() > 0);
     });
     it("emits an event on emit with data", function() {
         mediator.emit('main-menu', {
             state: 'open'
         });
-        expect(this.callback).toHaveBeenCalledWith({
+        assert.ok(callback.mock.calls.some(call => isDeepStrictEqual(call.arguments, [{
             state: 'open'
-        });
+        }])));
     });
     it("emits an event on emit without data", function() {
         mediator.emit('main-menu');
-        expect(this.callback).toHaveBeenCalledWith();
+        assert.ok(callback.mock.calls.some(call => isDeepStrictEqual(call.arguments, [])));
     });
     it("executes the initialize function", function() {
         mediator.initialize();
-        expect(this.initFunction).toHaveBeenCalled();
+        assert.ok(initFunction.mock.callCount() > 0);
     });
     it("executes the initialize function and returns 'this'", function() {
         let mediator = new Mediator();
         let result = mediator.initialize();
-        expect(result).toEqual(jasmine.any(Object));
+        assert.ok(result instanceof Object);
     });
     it("removes event listeners when destroyed", function() {
         mediator.destroy();
-        expect(mediator.listenerCount('main-menu')).toEqual(0);
+        assert.deepEqual(mediator.listenerCount('main-menu'), 0);
     });
     it("supports one-time and explicitly removed typed listeners", function() {
-        const callback = jasmine.createSpy('typed callback');
+        const callback = mock.fn();
         mediator.once('ready', callback);
         mediator.emit('ready', 'Ada');
         mediator.emit('ready', 'Grace');
-        expect(callback).toHaveBeenCalledOnceWith('Ada');
+        assert.deepEqual(callback.mock.calls.map(call => call.arguments), [['Ada']]);
         mediator.on('stopped', callback);
         mediator.removeListener('stopped', callback);
         mediator.emit('stopped');
-        expect(callback).toHaveBeenCalledTimes(1);
+        assert.equal(callback.mock.callCount(), 1);
     });
     it("is extendable", function() {
-        expect(mediator.extendedFunction).toEqual(jasmine.any(Function));
+        assert.ok(typeof mediator.extendedFunction === 'function');
     });
 });
