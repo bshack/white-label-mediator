@@ -1,0 +1,547 @@
+{
+  "runtime": "Chrome/152.0.0.0 (Codex in-app browser), macOS on Apple M5 Pro",
+  "samples": 7,
+  "note": "Medians captured from rendered browser output, rounded to 4 decimal places. Zero means below timer resolution. Individual browser samples not retained.",
+  "results": [
+    {
+      "listeners": 1,
+      "workload": "register",
+      "backend": "events@3.3.0",
+      "medianUs": 0.03
+    },
+    {
+      "listeners": 1,
+      "workload": "register",
+      "backend": "original-adapter",
+      "medianUs": 0.035
+    },
+    {
+      "listeners": 1,
+      "workload": "register",
+      "backend": "optimized-adapter",
+      "medianUs": 0.029
+    },
+    {
+      "listeners": 1,
+      "workload": "cold-dispatch",
+      "backend": "events@3.3.0",
+      "medianUs": 0.034
+    },
+    {
+      "listeners": 1,
+      "workload": "cold-dispatch",
+      "backend": "original-adapter",
+      "medianUs": 0.043
+    },
+    {
+      "listeners": 1,
+      "workload": "cold-dispatch",
+      "backend": "optimized-adapter",
+      "medianUs": 0.043
+    },
+    {
+      "listeners": 1,
+      "workload": "prepend",
+      "backend": "events@3.3.0",
+      "medianUs": 0.025
+    },
+    {
+      "listeners": 1,
+      "workload": "prepend",
+      "backend": "original-adapter",
+      "medianUs": 0.039
+    },
+    {
+      "listeners": 1,
+      "workload": "prepend",
+      "backend": "optimized-adapter",
+      "medianUs": 0.036
+    },
+    {
+      "listeners": 1,
+      "workload": "churn",
+      "backend": "events@3.3.0",
+      "medianUs": 0.024
+    },
+    {
+      "listeners": 1,
+      "workload": "churn",
+      "backend": "original-adapter",
+      "medianUs": 0.065
+    },
+    {
+      "listeners": 1,
+      "workload": "churn",
+      "backend": "optimized-adapter",
+      "medianUs": 0.031
+    },
+    {
+      "listeners": 1,
+      "workload": "churn-emit",
+      "backend": "events@3.3.0",
+      "medianUs": 0.035
+    },
+    {
+      "listeners": 1,
+      "workload": "churn-emit",
+      "backend": "original-adapter",
+      "medianUs": 0.084
+    },
+    {
+      "listeners": 1,
+      "workload": "churn-emit",
+      "backend": "optimized-adapter",
+      "medianUs": 0.057
+    },
+    {
+      "listeners": 1,
+      "workload": "dispatch",
+      "backend": "events@3.3.0",
+      "medianUs": 0.012
+    },
+    {
+      "listeners": 1,
+      "workload": "dispatch",
+      "backend": "original-adapter",
+      "medianUs": 0.012
+    },
+    {
+      "listeners": 1,
+      "workload": "dispatch",
+      "backend": "optimized-adapter",
+      "medianUs": 0.013
+    },
+    {
+      "listeners": 1,
+      "workload": "dispatch-6-args",
+      "backend": "events@3.3.0",
+      "medianUs": 0.015
+    },
+    {
+      "listeners": 1,
+      "workload": "dispatch-6-args",
+      "backend": "original-adapter",
+      "medianUs": 0.019
+    },
+    {
+      "listeners": 1,
+      "workload": "dispatch-6-args",
+      "backend": "optimized-adapter",
+      "medianUs": 0.019
+    },
+    {
+      "listeners": 1,
+      "workload": "once-cycle",
+      "backend": "events@3.3.0",
+      "medianUs": 0.048
+    },
+    {
+      "listeners": 1,
+      "workload": "once-cycle",
+      "backend": "original-adapter",
+      "medianUs": 0.102
+    },
+    {
+      "listeners": 1,
+      "workload": "once-cycle",
+      "backend": "optimized-adapter",
+      "medianUs": 0.094
+    },
+    {
+      "listeners": 1,
+      "workload": "cleanup",
+      "backend": "events@3.3.0",
+      "medianUs": 0.022
+    },
+    {
+      "listeners": 1,
+      "workload": "cleanup",
+      "backend": "original-adapter",
+      "medianUs": 0.245
+    },
+    {
+      "listeners": 1,
+      "workload": "cleanup",
+      "backend": "optimized-adapter",
+      "medianUs": 0.03
+    },
+    {
+      "listeners": 1,
+      "workload": "observed-cleanup",
+      "backend": "events@3.3.0",
+      "medianUs": 0.104
+    },
+    {
+      "listeners": 1,
+      "workload": "observed-cleanup",
+      "backend": "original-adapter",
+      "medianUs": 0.352
+    },
+    {
+      "listeners": 1,
+      "workload": "observed-cleanup",
+      "backend": "optimized-adapter",
+      "medianUs": 0.347
+    },
+    {
+      "listeners": 10,
+      "workload": "register",
+      "backend": "events@3.3.0",
+      "medianUs": 0.1
+    },
+    {
+      "listeners": 10,
+      "workload": "register",
+      "backend": "original-adapter",
+      "medianUs": 0.47
+    },
+    {
+      "listeners": 10,
+      "workload": "register",
+      "backend": "optimized-adapter",
+      "medianUs": 0.14
+    },
+    {
+      "listeners": 10,
+      "workload": "cold-dispatch",
+      "backend": "events@3.3.0",
+      "medianUs": 0.17
+    },
+    {
+      "listeners": 10,
+      "workload": "cold-dispatch",
+      "backend": "original-adapter",
+      "medianUs": 0.51
+    },
+    {
+      "listeners": 10,
+      "workload": "cold-dispatch",
+      "backend": "optimized-adapter",
+      "medianUs": 0.22
+    },
+    {
+      "listeners": 10,
+      "workload": "prepend",
+      "backend": "events@3.3.0",
+      "medianUs": 0.19
+    },
+    {
+      "listeners": 10,
+      "workload": "prepend",
+      "backend": "original-adapter",
+      "medianUs": 0.55
+    },
+    {
+      "listeners": 10,
+      "workload": "prepend",
+      "backend": "optimized-adapter",
+      "medianUs": 0.22
+    },
+    {
+      "listeners": 10,
+      "workload": "churn",
+      "backend": "events@3.3.0",
+      "medianUs": 0.03
+    },
+    {
+      "listeners": 10,
+      "workload": "churn",
+      "backend": "original-adapter",
+      "medianUs": 0.13
+    },
+    {
+      "listeners": 10,
+      "workload": "churn",
+      "backend": "optimized-adapter",
+      "medianUs": 0.03
+    },
+    {
+      "listeners": 10,
+      "workload": "churn-emit",
+      "backend": "events@3.3.0",
+      "medianUs": 0.08
+    },
+    {
+      "listeners": 10,
+      "workload": "churn-emit",
+      "backend": "original-adapter",
+      "medianUs": 0.18
+    },
+    {
+      "listeners": 10,
+      "workload": "churn-emit",
+      "backend": "optimized-adapter",
+      "medianUs": 0.12
+    },
+    {
+      "listeners": 10,
+      "workload": "dispatch",
+      "backend": "events@3.3.0",
+      "medianUs": 0.06
+    },
+    {
+      "listeners": 10,
+      "workload": "dispatch",
+      "backend": "original-adapter",
+      "medianUs": 0.04
+    },
+    {
+      "listeners": 10,
+      "workload": "dispatch",
+      "backend": "optimized-adapter",
+      "medianUs": 0.04
+    },
+    {
+      "listeners": 10,
+      "workload": "dispatch-6-args",
+      "backend": "events@3.3.0",
+      "medianUs": 0.09
+    },
+    {
+      "listeners": 10,
+      "workload": "dispatch-6-args",
+      "backend": "original-adapter",
+      "medianUs": 0.09
+    },
+    {
+      "listeners": 10,
+      "workload": "dispatch-6-args",
+      "backend": "optimized-adapter",
+      "medianUs": 0.09
+    },
+    {
+      "listeners": 10,
+      "workload": "once-cycle",
+      "backend": "events@3.3.0",
+      "medianUs": 0.41
+    },
+    {
+      "listeners": 10,
+      "workload": "once-cycle",
+      "backend": "original-adapter",
+      "medianUs": 1.17
+    },
+    {
+      "listeners": 10,
+      "workload": "once-cycle",
+      "backend": "optimized-adapter",
+      "medianUs": 0.58
+    },
+    {
+      "listeners": 10,
+      "workload": "cleanup",
+      "backend": "events@3.3.0",
+      "medianUs": 0.01
+    },
+    {
+      "listeners": 10,
+      "workload": "cleanup",
+      "backend": "original-adapter",
+      "medianUs": 0.8
+    },
+    {
+      "listeners": 10,
+      "workload": "cleanup",
+      "backend": "optimized-adapter",
+      "medianUs": 0.03
+    },
+    {
+      "listeners": 10,
+      "workload": "observed-cleanup",
+      "backend": "events@3.3.0",
+      "medianUs": 0.37
+    },
+    {
+      "listeners": 10,
+      "workload": "observed-cleanup",
+      "backend": "original-adapter",
+      "medianUs": 0.97
+    },
+    {
+      "listeners": 10,
+      "workload": "observed-cleanup",
+      "backend": "optimized-adapter",
+      "medianUs": 0.58
+    },
+    {
+      "listeners": 100,
+      "workload": "register",
+      "backend": "events@3.3.0",
+      "medianUs": 0.9
+    },
+    {
+      "listeners": 100,
+      "workload": "register",
+      "backend": "original-adapter",
+      "medianUs": 23.9
+    },
+    {
+      "listeners": 100,
+      "workload": "register",
+      "backend": "optimized-adapter",
+      "medianUs": 1.3
+    },
+    {
+      "listeners": 100,
+      "workload": "cold-dispatch",
+      "backend": "events@3.3.0",
+      "medianUs": 1.3
+    },
+    {
+      "listeners": 100,
+      "workload": "cold-dispatch",
+      "backend": "original-adapter",
+      "medianUs": 24.2
+    },
+    {
+      "listeners": 100,
+      "workload": "cold-dispatch",
+      "backend": "optimized-adapter",
+      "medianUs": 2
+    },
+    {
+      "listeners": 100,
+      "workload": "prepend",
+      "backend": "events@3.3.0",
+      "medianUs": 2
+    },
+    {
+      "listeners": 100,
+      "workload": "prepend",
+      "backend": "original-adapter",
+      "medianUs": 24.1
+    },
+    {
+      "listeners": 100,
+      "workload": "prepend",
+      "backend": "optimized-adapter",
+      "medianUs": 2.2
+    },
+    {
+      "listeners": 100,
+      "workload": "churn",
+      "backend": "events@3.3.0",
+      "medianUs": 0
+    },
+    {
+      "listeners": 100,
+      "workload": "churn",
+      "backend": "original-adapter",
+      "medianUs": 0.9
+    },
+    {
+      "listeners": 100,
+      "workload": "churn",
+      "backend": "optimized-adapter",
+      "medianUs": 0
+    },
+    {
+      "listeners": 100,
+      "workload": "churn-emit",
+      "backend": "events@3.3.0",
+      "medianUs": 0.4
+    },
+    {
+      "listeners": 100,
+      "workload": "churn-emit",
+      "backend": "original-adapter",
+      "medianUs": 1.3
+    },
+    {
+      "listeners": 100,
+      "workload": "churn-emit",
+      "backend": "optimized-adapter",
+      "medianUs": 0.8
+    },
+    {
+      "listeners": 100,
+      "workload": "dispatch",
+      "backend": "events@3.3.0",
+      "medianUs": 0.5
+    },
+    {
+      "listeners": 100,
+      "workload": "dispatch",
+      "backend": "original-adapter",
+      "medianUs": 0.3
+    },
+    {
+      "listeners": 100,
+      "workload": "dispatch",
+      "backend": "optimized-adapter",
+      "medianUs": 0.3
+    },
+    {
+      "listeners": 100,
+      "workload": "dispatch-6-args",
+      "backend": "events@3.3.0",
+      "medianUs": 0.6
+    },
+    {
+      "listeners": 100,
+      "workload": "dispatch-6-args",
+      "backend": "original-adapter",
+      "medianUs": 0.7
+    },
+    {
+      "listeners": 100,
+      "workload": "dispatch-6-args",
+      "backend": "optimized-adapter",
+      "medianUs": 0.7
+    },
+    {
+      "listeners": 100,
+      "workload": "once-cycle",
+      "backend": "events@3.3.0",
+      "medianUs": 7.3
+    },
+    {
+      "listeners": 100,
+      "workload": "once-cycle",
+      "backend": "original-adapter",
+      "medianUs": 52.2
+    },
+    {
+      "listeners": 100,
+      "workload": "once-cycle",
+      "backend": "optimized-adapter",
+      "medianUs": 9.5
+    },
+    {
+      "listeners": 100,
+      "workload": "cleanup",
+      "backend": "events@3.3.0",
+      "medianUs": 0
+    },
+    {
+      "listeners": 100,
+      "workload": "cleanup",
+      "backend": "original-adapter",
+      "medianUs": 23.7
+    },
+    {
+      "listeners": 100,
+      "workload": "cleanup",
+      "backend": "optimized-adapter",
+      "medianUs": 0
+    },
+    {
+      "listeners": 100,
+      "workload": "observed-cleanup",
+      "backend": "events@3.3.0",
+      "medianUs": 2.9
+    },
+    {
+      "listeners": 100,
+      "workload": "observed-cleanup",
+      "backend": "original-adapter",
+      "medianUs": 24.3
+    },
+    {
+      "listeners": 100,
+      "workload": "observed-cleanup",
+      "backend": "optimized-adapter",
+      "medianUs": 3.2
+    }
+  ]
+}

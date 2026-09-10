@@ -25,9 +25,9 @@ This contract does not claim every modern Node feature in browsers. Capture-reje
 
 ## Adapter design and ownership
 
-Each event has a registration list and an EventEmitter3 dispatch channel. Mutations replace that channel using EventEmitter3's public API, allowing an active emission to finish using its original snapshot. Once wrappers remove themselves before calling application code. The adapter supplies the compatibility methods EventEmitter3 omits; it does not modify EventEmitter3's internals or global module resolution.
+Each event has a registration list and a lazily cached EventEmitter3 dispatch channel. Ordinary additions append to an existing channel through the public API. Removal or prepend invalidates the cache; the next emission rebuilds it once. Active emissions retain their original dispatch snapshot. Once wrappers remove themselves before calling application code and guard against repeated invocation during recursion. Bulk cleanup clears channels directly when no removal observers exist; otherwise it preserves reverse-order notifications. The adapter does not modify EventEmitter3's internals or global module resolution.
 
-Rebuilding a channel costs work proportional to that event's listener count on registration/removal. No speed or bundle-size improvement is claimed. Benchmark before using this change as a performance optimization.
+Appending a registration is amortized constant work. Prepending and individual removal still cost linear work in the listener count; the first emission after cache invalidation also costs linear setup. Repeated invalidations before dispatch coalesce into one rebuild. Listener counting without a callback filter no longer allocates an array. See [measured performance](events-performance.md) and [the EventEmitter3 source review](eventemitter3-review.md): the optimized adapter is substantially faster than the original adapter for many mutation workloads, but does not consistently beat the previous browser emitter.
 
 Model and Mediator contain identical adapter source and adapter tests. Keep these copies synchronized when fixing compatibility behavior. This avoids introducing a new shared package or forcing Model to depend on a particular Mediator release, but creates an explicit maintenance responsibility.
 

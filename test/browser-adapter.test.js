@@ -120,3 +120,132 @@ for (const [name, Backend] of [['native', Native], ['legacy', Legacy], ['adapter
         await assert.rejects(Backend.once({}, 'ready'), TypeError);
     });
 }
+
+for (const [name, Backend] of [['native', Native], ['legacy', Legacy], ['adapter', Adapter]]) {
+    for (const count of [1, 2]) {
+        it(`${name}: append during dispatch waits until the next emission (${count} listeners)`, () => {
+            const emitter = new Backend();
+            const calls = [];
+            let added = false;
+            emitter.on('data', () => {
+                calls.push('first');
+                if (!added) {
+                    added = true;
+                    emitter.on('data', () => calls.push('added'));
+                }
+            });
+            if (count === 2) emitter.on('data', () => calls.push('second'));
+            const original = count === 1 ? ['first'] : ['first', 'second'];
+            emitter.emit('data');
+            assert.deepEqual(calls, original);
+            calls.length = 0;
+            emitter.emit('data');
+            assert.deepEqual(calls, [...original, 'added']);
+        });
+    }
+    it(`${name}: prepend and removal during recursive dispatch preserve both snapshots`, () => {
+        const emitter = new Backend();
+        const calls = [];
+        let nested = false;
+        const second = () => calls.push('second');
+        emitter.on('data', () => {
+            calls.push('first');
+            if (!nested) {
+                nested = true;
+                emitter.prependListener('data', () => calls.push('prepended'));
+                emitter.removeListener('data', second);
+                emitter.emit('data');
+            }
+        });
+        emitter.on('data', second);
+        emitter.emit('data');
+        assert.deepEqual(calls, ['first', 'prepended', 'first', 'second']);
+        calls.length = 0;
+        emitter.emit('data');
+        assert.deepEqual(calls, ['prepended', 'first']);
+    });
+    it(`${name}: bulk cleanup during dispatch preserves current callbacks and permits reuse`, () => {
+        const emitter = new Backend();
+        const calls = [];
+        emitter.on('data', () => {
+            calls.push('first');
+            emitter.removeAllListeners();
+            emitter.on('data', () => calls.push('replacement'));
+        });
+        emitter.on('data', () => calls.push('second'));
+        emitter.emit('data');
+        assert.deepEqual(calls, ['first', 'second']);
+        calls.length = 0;
+        emitter.emit('data');
+        assert.deepEqual(calls, ['replacement']);
+    });
+    it(`${name}: bulk removal notifies observers while preserving unrelated channels`, () => {
+        const emitter = new Backend();
+        const seen = [];
+        const a = () => {};
+        const b = () => {};
+        emitter.on('removeListener', (event, listener) => seen.push([event, listener]));
+        emitter.on('data', a).on('data', b).on('other', a);
+        emitter.removeAllListeners('data');
+        assert.deepEqual(seen, [['data', b], ['data', a]]);
+        assert.equal(emitter.listenerCount('other'), 1);
+        emitter.removeAllListeners();
+        assert.deepEqual(emitter.eventNames(), []);
+    });
+    it(`${name}: registration in newListener precedes the requested callback`, () => {
+        const emitter = new Backend();
+        const calls = [];
+        emitter.once('newListener', event => {
+            assert.equal(event, 'data');
+            emitter.on('data', () => calls.push('injected'));
+        });
+        emitter.on('data', () => calls.push('requested'));
+        emitter.emit('data');
+        assert.deepEqual(calls, ['injected', 'requested']);
+    });
+}
+
+for (const [name, Backend] of [['native', Native], ['legacy', Legacy], ['adapter', Adapter]]) {
+    it(`${name}: payload arities preserve exact arguments and receiver identity`, () => {
+        for (const count of [1, 3]) {
+            for (const arity of [0, 1, 2, 3, 4, 5, 6, 10]) {
+                const emitter = new Backend();
+                const args = Array.from({length: arity}, (_, value) => ({value}));
+                let calls = 0;
+                for (let i = 0; i < count; i++) emitter.on('data', function (...received) {
+                    assert.equal(this, emitter);
+                    assert.deepEqual(received, args);
+                    received.forEach((value, index) => assert.equal(value, args[index]));
+                    calls++;
+                });
+                emitter.emit('data', ...args);
+                assert.equal(calls, count);
+            }
+        }
+    });
+    it(`${name}: listener inspection returns independent arrays`, () => {
+        const emitter = new Backend();
+        assert.deepEqual(emitter.listeners('missing'), []);
+        assert.deepEqual(emitter.rawListeners('missing'), []);
+        const a = () => {};
+        const b = () => {};
+        emitter.on('data', a).once('data', b);
+        const raw = emitter.rawListeners('data');
+        emitter.listeners('data').length = 0;
+        emitter.rawListeners('data').length = 0;
+        assert.deepEqual(emitter.listeners('data'), [a, b]);
+        assert.deepEqual(emitter.rawListeners('data'), raw);
+    });
+}
+
+it('adapter: filtered listener counts do not alter registrations', () => {
+    const emitter = new Adapter();
+    const callback = () => {};
+    assert.equal(emitter.listenerCount('missing', callback), 0);
+    emitter.on('data', callback).once('data', callback).on('data', () => {});
+    assert.equal(emitter.listenerCount('data'), 3);
+    assert.equal(emitter.listenerCount('data', callback), 2);
+    assert.equal(emitter.listenerCount('data', () => {}), 0);
+    emitter.emit('data');
+    assert.equal(emitter.listenerCount('data', callback), 1);
+});

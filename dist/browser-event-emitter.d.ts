@@ -20,8 +20,6 @@ declare class BrowserEventEmitter {
     private limit?;
     getMaxListeners(): number;
     setMaxListeners(limit: number): this;
-    /** Replace the dispatch channel so an in-flight emit retains its listener snapshot. */
-    private store;
     private add;
     on(event: EventName, listener: Listener): this;
     addListener(event: EventName, listener: Listener): this;

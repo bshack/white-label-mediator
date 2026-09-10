@@ -62,17 +62,6 @@ class BrowserEventEmitter {
         this.limit = limit;
         return this;
     }
-    /** Replace the dispatch channel so an in-flight emit retains its listener snapshot. */
-    store(event, registrations, warned) {
-        if (!registrations.length) {
-            this.channels.delete(event);
-            return;
-        }
-        const bus = new eventemitter3_1.default();
-        for (const registration of registrations)
-            bus.on('dispatch', registration.raw, this);
-        this.channels.set(event, { registrations, bus, warned });
-    }
     add(event, listener, once, prepend) {
         validateListener(listener);
         this.emit('newListener', event, listener);
@@ -89,19 +78,26 @@ class BrowserEventEmitter {
             };
             raw.listener = listener;
         }
-        const channel = this.channels.get(event);
-        const registrations = channel ? channel.registrations.slice() : [];
+        const channel = this.channels.get(event) ?? { registrations: [], warned: false };
+        const registrations = channel.registrations;
         const registration = { original: listener, raw };
-        if (prepend)
+        if (prepend) {
             registrations.unshift(registration);
-        else
+            channel.bus = undefined;
+        }
+        else {
             registrations.push(registration);
-        let warned = channel ? channel.warned : false;
+            // EventEmitter3 captures the listener count before dispatch, so appending
+            // does not extend an emission already in progress.
+            channel.bus?.on('dispatch', raw, this);
+        }
+        let warned = channel.warned;
         const limit = this.getMaxListeners();
         const exceeded = limit > 0 && registrations.length > limit && !warned;
         if (exceeded)
             warned = true;
-        this.store(event, registrations, warned);
+        channel.warned = warned;
+        this.channels.set(event, channel);
         if (exceeded) {
             const warning = Object.assign(new Error('Possible EventEmitter memory leak detected'), {
                 name: 'MaxListenersExceededWarning', emitter: this, type: event, count: registrations.length
@@ -122,19 +118,32 @@ class BrowserEventEmitter {
                 throw args[0];
             throw Object.assign(new Error('Unhandled error event'), { context: args[0] });
         }
-        return channel ? channel.bus.emit('dispatch', ...args) : false;
+        if (!channel)
+            return false;
+        // Cache a dispatch snapshot until removal or prepend changes its order.
+        // In-flight emissions retain their old bus, including during recursion.
+        if (!channel.bus) {
+            const bus = new eventemitter3_1.default();
+            for (const registration of channel.registrations)
+                bus.on('dispatch', registration.raw, this);
+            channel.bus = bus;
+        }
+        return channel.bus.emit('dispatch', ...args);
     }
     removeListener(event, listener) {
         validateListener(listener);
         const channel = this.channels.get(event);
         if (!channel)
             return this;
-        const registrations = channel.registrations.slice();
+        const registrations = channel.registrations;
         for (let i = registrations.length - 1; i >= 0; i--) {
             const registration = registrations[i];
             if (registration.original === listener || registration.raw === listener) {
                 registrations.splice(i, 1);
-                this.store(event, registrations, channel.warned);
+                if (registrations.length)
+                    channel.bus = undefined;
+                else
+                    this.channels.delete(event);
                 this.emit('removeListener', event, registration.original);
                 break;
             }
@@ -143,6 +152,14 @@ class BrowserEventEmitter {
     }
     off(event, listener) { return this.removeListener(event, listener); }
     removeAllListeners(event) {
+        // Without observers there is no reason to remove registrations individually.
+        if (!this.channels.has('removeListener')) {
+            if (event === undefined)
+                this.channels.clear();
+            else
+                this.channels.delete(event);
+            return this;
+        }
         if (event === undefined) {
             for (const name of this.eventNames()) {
                 if (name !== 'removeListener')
@@ -168,8 +185,17 @@ class BrowserEventEmitter {
         return channel ? channel.registrations.map(registration => registration.raw) : [];
     }
     listenerCount(event, listener) {
-        const listeners = this.listeners(event);
-        return listener === undefined ? listeners.length : listeners.filter(value => value === listener).length;
+        const channel = this.channels.get(event);
+        if (!channel)
+            return 0;
+        if (listener === undefined)
+            return channel.registrations.length;
+        let count = 0;
+        for (const registration of channel.registrations) {
+            if (registration.original === listener)
+                count++;
+        }
+        return count;
     }
     eventNames() {
         return Reflect.ownKeys(Object.fromEntries(Array.from(this.channels.keys(), name => [name, true])));
