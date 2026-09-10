@@ -49,6 +49,57 @@ function eventsContract(name, createEmitter, Backend) {
             assert.equal(count, 1);
         });
 
+        it('preserves raw once wrapper return values and invokes the callback only once', () => {
+            const emitter = createEmitter();
+            let calls = 0;
+            emitter.once('answer', function (value) {
+                assert.equal(this, emitter);
+                calls++;
+                return value;
+            });
+            const raw = emitter.rawListeners('answer')[0];
+            assert.equal(raw(42), 42);
+            assert.equal(raw(99), undefined);
+            assert.equal(calls, 1);
+            assert.equal(emitter.listenerCount('answer'), 0);
+        });
+
+        for (const observeRemoval of [false, true]) {
+            it(`distinguishes explicit undefined from no removal argument (observer: ${observeRemoval})`, () => {
+                const emitter = createEmitter();
+                const notices = [];
+                if (observeRemoval) emitter.on('removeListener', event => notices.push(event));
+                emitter.on('keep', () => {});
+                emitter.on('undefined', () => {});
+                assert.equal(emitter.removeAllListeners(undefined), emitter);
+                assert.equal(emitter.listenerCount('keep'), 1);
+                assert.equal(emitter.listenerCount('undefined'), 0);
+                assert.deepEqual(notices, observeRemoval ? [undefined] : []);
+                emitter.removeAllListeners();
+                assert.deepEqual(emitter.eventNames(), []);
+            });
+        }
+
+        it('notifies explicit symbol removal and preserves backend bulk notification behavior', () => {
+            const emitter = createEmitter();
+            const event = Symbol('cleanup');
+            const callback = () => {};
+            const notices = [];
+            emitter.on('removeListener', (name, listener) => {
+                if (name === event) notices.push(listener);
+            });
+            emitter.on(event, callback);
+            emitter.removeAllListeners(event);
+            assert.deepEqual(notices, [callback]);
+            emitter.on(event, callback);
+            notices.length = 0;
+            emitter.removeAllListeners();
+            // events 3.3.0 clears symbols but omits their bulk removal notifications.
+            assert.deepEqual(notices, Backend === require('events/') ? [] : [callback]);
+            assert.equal(emitter.listenerCount(event), 0);
+            assert.deepEqual(emitter.eventNames(), []);
+        });
+
         it('removes only the most recently added matching duplicate listener', () => {
             const emitter = createEmitter();
             const calls = [];
