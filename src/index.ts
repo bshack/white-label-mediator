@@ -2,12 +2,10 @@
 import EventEmitter from 'events';
 
 
-
-
 type EventArguments<T> = T extends unknown[] ? T : never;
 
 /** Synchronous event bus with optional compile-time event and payload contracts. */
-class Mediator<Events extends object = Record<string | symbol, any[]>> extends EventEmitter {
+class Mediator<Events extends object = Record<string | symbol, unknown[]>> extends EventEmitter {
 
     override on<Name extends keyof Events & (string | symbol)>(
         eventName: Name,
@@ -37,40 +35,21 @@ class Mediator<Events extends object = Record<string | symbol, any[]>> extends E
         return super.removeListener(eventName, listener);
     }
 
-    /**
-     * Create an instance with its own state and listener references.
-     */
+    /** Create an instance with its own state and listener references. */
     constructor() {
-
         super();
-
     }
 
-    /**
-     * Start this instance and return it for lifecycle chaining.
-     * @returns This instance for chaining.
-     */
+    /** Start this instance and return it for lifecycle chaining. */
     initialize() {
-
         return this;
-
     }
 
-    /**
-     * Release owned state and listeners so the instance can leave the application lifecycle.
-     * @returns This instance after cleanup.
-     */
+    /** Release owned state and listeners so the instance can leave the application lifecycle. */
     destroy() {
-
-        // Release subscriber references when a mediator leaves the application lifecycle.
         this.removeAllListeners();
-
         return this;
     }
-
-};
-
-
-
+}
 
 export = Mediator;
