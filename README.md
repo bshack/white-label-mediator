@@ -10,6 +10,14 @@ The mediator has no DOM or generated HTML, so it does not independently affect W
 
 - Node.js `^22.18.0` or `>=24.11.0` for installation and development
 
+## Versioning policy
+
+Backward compatibility is not maintained through obsolete distribution formats, aliases, deprecated signatures, or runtime shims. Breaking public API or supported-distribution changes are communicated with a Semantic Versioning major release and documented migration notes.
+
+### Version 4 migration
+
+Bower/AMD package metadata has been removed. Install `white-label-mediator` through npm and consume the documented CommonJS/ESM-compatible package entrypoint with a modern Node or browser-bundler toolchain. No Bower compatibility metadata is retained.
+
 ## Install and import
 
 ```sh
@@ -117,7 +125,7 @@ npm run audit
 
 The npm package publishes the compiled `dist` file and this README.
 
-## TypeScript development and version 3.0.0 migration
+## TypeScript development
 
 Implementation code now uses strict TypeScript. Builds emit JavaScript, source maps with embedded source, and `.d.ts` declarations into `dist`. JavaScript callers can still use the package without compiling TypeScript themselves. JSDoc comments describe parameters, return values, lifecycle behavior, and validation at the implementation, and are retained in declarations.
 
