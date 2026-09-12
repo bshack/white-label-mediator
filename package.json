@@ -24,6 +24,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:unit": "node --test test/*.test.js",
     "coverage": "npm run build && npm run test:types && c8 npm run test:unit",
+    "benchmark": "npm run build && node benchmark/mediator.bench.js",
     "prepack": "npm run build",
     "test:types": "tsc -p tsconfig.consumer.json",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
