@@ -93,7 +93,7 @@ applicationMediator.notifyError(new Error('Unable to load profile'));
 
 ## Use with other White Label packages
 
-`white-label-model` can publish namespaced change events through a mediator, and `white-label-router` can listen for `router:navigate`:
+[`white-label-model`](https://github.com/bshack/white-label-model) can publish namespaced change events through a mediator, and [`white-label-router`](https://github.com/bshack/white-label-router) can listen for `router:navigate`:
 
 ```js
 mediator.emit('router:navigate', {
