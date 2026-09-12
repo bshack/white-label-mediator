@@ -135,7 +135,7 @@ messages.emit('greeting', 'Ada');
 messages.destroy();
 ```
 
-The package uses the Node-compatible EventEmitter API and has no runtime dependency on White Label Model, View, or Router.
+The package uses the Node-compatible EventEmitter API. It can be installed and used independently; it has no runtime dependency on the other White Label packages.
 
 ## Development and verification
 
