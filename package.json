@@ -1,7 +1,7 @@
 {
   "name": "white-label-mediator",
   "version": "4.0.0",
-  "description": "A simple ES6 JS mediator that allows communication between views.",
+  "description": "A small EventEmitter-compatible application event bus with optional typed events.",
   "main": "dist/index.js",
   "files": [
     "dist",
@@ -35,10 +35,11 @@
   },
   "keywords": [
     "javascript",
-    "js",
+    "typescript",
+    "events",
+    "event-bus",
     "mediator",
-    "es6",
-    "es2015"
+    "eventemitter"
   ],
   "author": {
     "name": "Bill Shackelford",
