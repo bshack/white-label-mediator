@@ -1,8 +1,8 @@
 # white-label-mediator
 
-`white-label-mediator` is a small application event bus. It lets otherwise independent models, views, and routers exchange named messages without importing or calling one another directly.
+`white-label-mediator` is a small application event bus. It lets otherwise independent models, views, routers, and application modules exchange named messages without importing or calling one another directly.
 
-The class extends Node.js-compatible `EventEmitter`, supplied for browsers by the `events` package. Standard methods such as `on`, `once`, `emit`, `removeListener`, and `removeAllListeners` are available.
+The class extends a Node.js-compatible `EventEmitter`, supplied for browsers by the `events` package. Standard methods such as `on`, `once`, `emit`, `removeListener`, and `removeAllListeners` are available.
 
 The mediator has no DOM or generated HTML, so it does not independently affect WCAG conformance or indexing. Applications must ensure mediated UI updates preserve keyboard focus, announce meaningful asynchronous status, and do not make primary public content dependent on client-only events.
 
@@ -12,11 +12,7 @@ The mediator has no DOM or generated HTML, so it does not independently affect W
 
 ## Versioning policy
 
-Backward compatibility is not maintained through obsolete distribution formats, aliases, deprecated signatures, or runtime shims. Breaking public API or supported-distribution changes are communicated with a Semantic Versioning major release and documented migration notes.
-
-### Version 4 migration
-
-Bower/AMD package metadata has been removed. Install `white-label-mediator` through npm and consume the documented CommonJS/ESM-compatible package entrypoint with a modern Node or browser-bundler toolchain. No Bower compatibility metadata is retained.
+Backward compatibility is not maintained through obsolete distribution formats, aliases, deprecated signatures, or runtime shims. Breaking public API or supported-distribution changes are communicated with a Semantic Versioning major release and release notes outside this README.
 
 ## Install and import
 
@@ -48,7 +44,7 @@ Another part publishes the event and its data:
 mediator.emit('menu:state', {open: true});
 ```
 
-The publisher does not need to know which components are listening. Emitting an event with no subscribers is valid and simply has no effect.
+The publisher does not need to know which components are listening. Emitting an event with no subscribers is valid and has no effect.
 
 ## Remove subscriptions
 
@@ -73,11 +69,11 @@ mediator.once('application:ready', () => {
 ```js
 mediator.initialize();
 
-// Later, when the entire event bus is no longer needed:
+// When the event bus is no longer needed:
 mediator.destroy();
 ```
 
-Only call `destroy()` when the mediator itself is leaving the application. Individual views should remove their own callbacks with `removeListener()` so they do not accidentally unsubscribe other components.
+Only call `destroy()` when the mediator itself is leaving the application. Individual views and modules should remove their own callbacks with `removeListener()` so they do not accidentally unsubscribe other components.
 
 ## Extend the mediator
 
@@ -106,29 +102,29 @@ mediator.emit('router:navigate', {
 });
 ```
 
-## Event backend compatibility
+## Typed events
 
-The test suite also loads the npm browser implementation explicitly and checks it against the same EventEmitter contract as Node. See [the compatibility contract and replacement assessment](https://github.com/bshack/white-label-mediator/blob/master/docs/events-compatibility.md) for covered behavior and limitations. These checks run under Node and do not replace real-browser integration testing.
+Supply an event map for compile-time event names and payloads without adding runtime code:
 
-## Development
+```ts
+type Events = {
+    ready: [name: string];
+    stopped: [];
+};
 
-Tests live in `test/*.test.js` and use Node's built-in `node:test` runner, strict assertions, and native mocks. Run `npm test` for the build, consumer type checks, and full suite; `npm run coverage` retains the existing c8 coverage gate. After building, run `node --test test/mediator.test.js` for the converted suite alone.
-
-```sh
-npm ci
-npm run build
-npm run lint
-npm run typecheck
-npm test
-npm run coverage
-npm run audit
+const mediator = new Mediator<Events>();
+mediator.emit('ready', 'Ada');
 ```
 
-The npm package publishes the compiled `dist` file and this README.
+The class preserves synchronous EventEmitter delivery order. Event names and payloads remain application-defined unless a generic event map is supplied.
 
-## TypeScript development
+## Event backend compatibility
 
-Implementation code now uses strict TypeScript. Builds emit JavaScript, source maps with embedded source, and `.d.ts` declarations into `dist`. JavaScript callers can still use the package without compiling TypeScript themselves. JSDoc comments describe parameters, return values, lifecycle behavior, and validation at the implementation, and are retained in declarations.
+The test suite loads both Node's EventEmitter implementation and the npm browser implementation against the same event contract. See `docs/events-compatibility.md` for the covered behavior and limitations. These Node-based checks do not replace real-browser integration testing.
+
+## TypeScript
+
+Implementation code uses strict TypeScript. Builds emit JavaScript, source maps with embedded source, and `.d.ts` declarations into `dist`.
 
 ```ts
 import Mediator from 'white-label-mediator';
@@ -139,34 +135,25 @@ messages.emit('greeting', 'Ada');
 messages.destroy();
 ```
 
-The class retains the Node EventEmitter API and its synchronous delivery order. Event names and payloads remain application-defined; TypeScript does not enforce a schema between separate `on` and `emit` calls.
+The package uses the Node-compatible EventEmitter API and has no runtime dependency on White Label Model, View, or Router.
 
-This is a major release because the distribution is now CommonJS emitted by TypeScript, replacing the previous UMD wrapper. CommonJS `require` and the documented ESM imports remain supported. Direct AMD loading or browser script tags that depended on UMD globals must migrate to a browser bundler. Edit `src/*.ts`, then run `npm run build`; do not edit generated `dist` files. The obsolete Babel build dependencies have been removed.
+## Development and verification
 
-### Verification, coverage, and compatibility
-
-Version 4.0.0 retains the standard synchronous EventEmitter behavior and has no runtime dependency on model, view, or router. Package tests cover the mediator public contract independently; consuming applications are responsible for integration testing the package versions they select.
+Tests live in `test/*.test.js` and use Node's built-in `node:test` runner, strict assertions, and native mocks.
 
 ```sh
 npm ci --ignore-scripts
+npm run build
 npm run lint
 npm run typecheck
 npm test
 npm run coverage
+npm run audit
 npm pack --dry-run
 ```
 
-`npm test` builds the code, checks TypeScript consumer examples against the emitted declarations, and runs the tests. `npm run coverage` additionally enforces **100% statements, branches, functions, and lines for each implementation file**. Unexecuted implementation files count toward the result; declaration-only files contain no executable code and are excluded. Reports are written to `coverage`, including `lcov.info` for coverage viewers. CI runs the same gate and checks committed build output for drift.
+`npm test` builds the code, checks TypeScript consumer examples against emitted declarations, and runs the tests. `npm run coverage` enforces **100% statements, branches, functions, and lines for each implementation file**. CI runs the same gate and checks committed build output for drift.
 
 Tests exercise the compiled JavaScript interface used by downstream callers. Coverage is an execution metric, not proof that all possible inputs or external integrations are correct.
 
-To undo this migration, revert its commit and run `npm ci` from the restored lockfile. No npm release, database migration, or production deployment is performed by these development changes.
-### Typed events
-
-Supply an event map for compile-time event names and payloads without adding runtime code:
-
-```ts
-type Events = {ready: [name: string]; stopped: []};
-const mediator = new Mediator<Events>();
-mediator.emit('ready', 'Ada');
-```
+Edit `src/*.ts`, then run the build; do not edit generated `dist` files directly. The npm package publishes the compiled distribution and this README.
