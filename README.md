@@ -117,6 +117,7 @@ Tests live in `test/*.test.js` and use Node's built-in `node:test` runner, stric
 ```sh
 npm ci
 npm run build
+npm run lint
 npm run typecheck
 npm test
 npm run coverage
@@ -142,14 +143,13 @@ The class retains the Node EventEmitter API and its synchronous delivery order. 
 
 This is a major release because the distribution is now CommonJS emitted by TypeScript, replacing the previous UMD wrapper. CommonJS `require` and the documented ESM imports remain supported. Direct AMD loading or browser script tags that depended on UMD globals must migrate to a browser bundler. Edit `src/*.ts`, then run `npm run build`; do not edit generated `dist` files. The obsolete Babel build dependencies have been removed.
 
-### Verification and coverage
+### Verification, coverage, and compatibility
 
-## Tested compatibility
-
-Version 3.1 is tested with model 3.x, view 4.x, and router 4.x. It retains the standard synchronous EventEmitter behavior.
+Version 4.0.0 retains the standard synchronous EventEmitter behavior and has no runtime dependency on model, view, or router. Package tests cover the mediator public contract independently; consuming applications are responsible for integration testing the package versions they select.
 
 ```sh
 npm ci --ignore-scripts
+npm run lint
 npm run typecheck
 npm test
 npm run coverage

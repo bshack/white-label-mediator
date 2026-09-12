@@ -18,7 +18,7 @@ White Label imports `events`. Node resolves that name to its built-in EventEmitt
 - Unhandled `error` events throw; handled errors reach their listeners; exceptions thrown by listeners propagate synchronously.
 - Listener argument validation and per-instance maximum-listener settings.
 
-The package-specific cases also cover lifecycle cleanup. Model/Collection cases cover mutation order, full-state payload identity, silent mutations, invalid Model updates, array/Map collections, and local/namespaced relay using each combination of the two event backends. State teardown must not unsubscribe unrelated mediator listeners.
+The package-specific cases also cover Mediator lifecycle cleanup: `initialize()` chaining, named and symbol listeners, `destroy()` cleanup, and post-destroy emission behavior under both event backends.
 
 This is a regression contract for existing behavior, not a complete implementation of every Node EventEmitter feature. Newer Node-only static helpers, promise rejection capture, exact diagnostics/warning delivery, and every overload are not asserted to work in browsers. Public types inherited from current Node declarations are not by themselves evidence of browser support.
 
@@ -68,7 +68,7 @@ Load the bundle as a script in a browser and check `globalThis.whiteLabelSmokePa
 
 ### Validation of the retained implementation
 
-On September 10, 2026, Node 24.19.0 passed all 41 package tests, consumer type tests, typechecking, and the 100% per-file coverage gate. Rebuilding produced identical dist output. Package dry runs contained no adapter artifacts. esbuild 0.25.10 bundle manifests included npm events and excluded EventEmitter3; both package smoke tests passed in the Codex in-app browser. Clean locked installations reported zero known vulnerabilities. No dedicated lint or formatter is configured; whitespace checks passed. No full downstream application or browser-version matrix was run.
+On September 10, 2026, Node 24.19.0 passed all 41 package tests, consumer type tests, typechecking, and the 100% per-file coverage gate. Rebuilding produced identical dist output. Package dry runs contained no adapter artifacts. esbuild 0.25.10 bundle manifests included npm events and excluded EventEmitter3; both package smoke tests passed in the Codex in-app browser. Clean locked installations reported zero known vulnerabilities. At that date, no dedicated lint or formatter was configured; ESLint was added on September 11, 2026. Whitespace checks passed. No full downstream application or browser-version matrix was run.
 
 Sources:
 
