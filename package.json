@@ -1,7 +1,7 @@
 {
   "name": "white-label-mediator",
   "version": "4.0.0",
-  "description": "A small EventEmitter-compatible application event bus with optional typed events.",
+  "description": "A small browser/Node EventEmitter-compatible application event bus with optional typed events.",
   "main": "dist/index.js",
   "files": [
     "dist",
@@ -39,7 +39,11 @@
     "events",
     "event-bus",
     "mediator",
-    "eventemitter"
+    "eventemitter",
+    "browser",
+    "node",
+    "server-side",
+    "universal"
   ],
   "author": {
     "name": "Bill Shackelford",
