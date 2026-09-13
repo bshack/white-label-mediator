@@ -44,13 +44,15 @@ function updateMenu({open}) {
     document.querySelector('#main-menu').hidden = !open;
 }
 
+// Keep the same callback reference so this subscription can be removed later.
 mediator.on('menu:state', updateMenu);
 ```
 
 Publish where the intent originates:
 
 ```js
-mediator.emit('menu:state', {open: true});
+// emit() returns true when at least one listener handled the event.
+const delivered = mediator.emit('menu:state', {open: true});
 ```
 
 The publisher does not know who is listening. Emitting an event with no subscribers is valid and has no effect. Delivery is synchronous and follows EventEmitter ordering.
@@ -59,16 +61,16 @@ The publisher does not know who is listening. Emitting an event with no subscrib
 
 Mediator extends a Node.js-compatible `EventEmitter`, supplied in browsers by the `events` package.
 
-| Method | Behavior |
-| --- | --- |
-| `on(name, callback)` | Subscribe to a named application event. |
-| `once(name, callback)` | Subscribe for one delivery. |
-| `emit(name, ...payload)` | Synchronously publish an event. |
-| `removeListener(name, callback)` | Release one owned subscription. |
-| `removeAllListeners(...)` | Use the standard EventEmitter cleanup contract. |
-| `listenerCount(name)` | Inspect current listener count. |
-| `initialize()` | Lifecycle hook that returns the mediator. |
-| `destroy()` | Remove every listener owned by this mediator instance. |
+| Method | Behavior | Returns |
+| --- | --- | --- |
+| `on(name, callback)` | Subscribe to a named application event. | The same mediator instance for chaining. |
+| `once(name, callback)` | Subscribe for one delivery. | The same mediator instance for chaining. |
+| `emit(name, ...payload)` | Synchronously publish an event. | `true` when the event had at least one listener; otherwise `false`. |
+| `removeListener(name, callback)` | Release one owned subscription. | The same mediator instance for chaining. |
+| `removeAllListeners(...)` | Use the standard EventEmitter cleanup contract. | The same mediator instance for chaining. |
+| `listenerCount(name)` | Inspect current listener count. | The number of listeners registered for the event. |
+| `initialize()` | Start the lifecycle. | The same mediator instance. |
+| `destroy()` | Remove every listener owned by this mediator instance. | The same mediator instance after cleanup. |
 
 ## Lifecycle and ownership
 
