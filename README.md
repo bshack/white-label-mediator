@@ -1,20 +1,30 @@
 # white-label-mediator
 
-`white-label-mediator` is a small application event bus. It lets otherwise independent models, views, routers, and application modules exchange named messages without importing or calling one another directly.
+> Application events without application coupling.
 
-The class extends a Node.js-compatible `EventEmitter`, supplied for browsers by the `events` package. Standard methods such as `on`, `once`, `emit`, `removeListener`, and `removeAllListeners` are available.
+`white-label-mediator` is a small Node-compatible event bus. It lets models, views, routers, and application modules exchange named messages without importing or calling one another directly.
 
-The mediator has no DOM or generated HTML, so it does not independently affect WCAG conformance or indexing. Applications must ensure mediated UI updates preserve keyboard focus, announce meaningful asynchronous status, and do not make primary public content dependent on client-only events.
+**Responsibility:** move application intent between independent pieces. Nothing more.
+
+## Why it exists
+
+White Label favors explicit composition over framework-owned communication. Mediator gives cross-module events a clear boundary while leaving event names, payloads, state, rendering, routing, and lifecycle policy in the application.
+
+Use it independently or compose it with the rest of White Label:
+
+- [`white-label-model`](https://github.com/bshack/white-label-model) can relay namespaced state events through a mediator.
+- [`white-label-router`](https://github.com/bshack/white-label-router) can listen for `router:navigate` intent.
+- [`white-label-view`](https://github.com/bshack/white-label-view) can publish or consume application events without becoming coupled to other components.
+- [`generator-white-label`](https://github.com/bshack/white-label) demonstrates the pieces together.
+- [`white-label-demo-site`](https://github.com/bshack/white-label-demo-site) contains the complete documentation and live examples.
+
+The package has no runtime dependency on the other White Label packages.
 
 ## Requirements
 
 - Node.js `^22.18.0` or `>=24.11.0` for installation and development
 
-## Versioning policy
-
-Backward compatibility is not maintained through obsolete distribution formats, aliases, deprecated signatures, or runtime shims. Breaking public API or supported-distribution changes are communicated with a Semantic Versioning major release and release notes outside this README.
-
-## Install and import
+## Install
 
 ```sh
 npm install white-label-mediator
@@ -28,7 +38,7 @@ const mediator = new Mediator();
 
 ## Publish and subscribe
 
-One part of the application subscribes to a named event:
+Subscribe where a module owns the reaction:
 
 ```js
 function updateMenu({open}) {
@@ -38,62 +48,58 @@ function updateMenu({open}) {
 mediator.on('menu:state', updateMenu);
 ```
 
-Another part publishes the event and its data:
+Publish where the intent originates:
 
 ```js
 mediator.emit('menu:state', {open: true});
 ```
 
-The publisher does not need to know which components are listening. Emitting an event with no subscribers is valid and has no effect.
+The publisher does not know who is listening. Emitting an event with no subscribers is valid and has no effect. Delivery is synchronous and follows EventEmitter ordering.
 
-## Remove subscriptions
+## Public API
 
-Keep a reference to each callback so it can be removed during component teardown:
+Mediator extends a Node.js-compatible `EventEmitter`, supplied in browsers by the `events` package.
+
+| Method | Behavior |
+| --- | --- |
+| `on(name, callback)` | Subscribe to a named application event. |
+| `once(name, callback)` | Subscribe for one delivery. |
+| `emit(name, ...payload)` | Synchronously publish an event. |
+| `removeListener(name, callback)` | Release one owned subscription. |
+| `removeAllListeners(...)` | Use the standard EventEmitter cleanup contract. |
+| `listenerCount(name)` | Inspect current listener count. |
+| `initialize()` | Lifecycle hook that returns the mediator. |
+| `destroy()` | Remove every listener owned by this mediator instance. |
+
+## Lifecycle and ownership
+
+Keep callback references so the component that subscribed can clean itself up:
 
 ```js
 mediator.removeListener('menu:state', updateMenu);
 ```
 
-For a listener that should run only once:
+Use `once()` for one-time intent:
 
 ```js
 mediator.once('application:ready', () => {
-    console.log('The application is ready.');
+    console.log('Ready');
 });
 ```
 
-## Application lifecycle
-
-`initialize()` is a lifecycle hook and returns the mediator. `destroy()` removes every listener registered on that mediator instance and returns it:
+`destroy()` is for the event bus itself leaving the application:
 
 ```js
 mediator.initialize();
-
-// When the event bus is no longer needed:
+// ...application lifetime...
 mediator.destroy();
 ```
 
-Only call `destroy()` when the mediator itself is leaving the application. Individual views and modules should remove their own callbacks with `removeListener()` so they do not accidentally unsubscribe other components.
+Individual components should remove their own listeners instead of calling `destroy()` or broadly removing listeners they do not own.
 
-## Extend the mediator
+## Router intent
 
-```js
-import Mediator from 'white-label-mediator';
-
-class ApplicationMediator extends Mediator {
-    notifyError(error) {
-        this.emit('application:error', {message: error.message});
-    }
-}
-
-const applicationMediator = new ApplicationMediator();
-applicationMediator.on('application:error', console.error);
-applicationMediator.notifyError(new Error('Unable to load profile'));
-```
-
-## Use with other White Label packages
-
-[`white-label-model`](https://github.com/bshack/white-label-model) can publish namespaced change events through a mediator, and [`white-label-router`](https://github.com/bshack/white-label-router) can listen for `router:navigate`:
+Mediator and Router compose through an ordinary event contract:
 
 ```js
 mediator.emit('router:navigate', {
@@ -102,9 +108,27 @@ mediator.emit('router:navigate', {
 });
 ```
 
+Router remains responsible for navigation. Mediator only carries the message.
+
+## Model events
+
+Model can relay local events without importing Mediator:
+
+```js
+const session = new Model({authenticated: false});
+session.name = 'session';
+session.mediator = mediator;
+
+mediator.on('model:session:update', state => {
+    console.log(state.authenticated);
+});
+```
+
+Any EventEmitter-compatible object can fill this role. The integration is intentionally structural rather than hard-wired.
+
 ## Typed events
 
-Supply an event map for compile-time event names and payloads without adding runtime code:
+Supply an event map for compile-time event names and payload tuples without adding runtime code:
 
 ```ts
 type Events = {
@@ -116,30 +140,46 @@ const mediator = new Mediator<Events>();
 mediator.emit('ready', 'Ada');
 ```
 
-The class preserves synchronous EventEmitter delivery order. Event names and payloads remain application-defined unless a generic event map is supplied.
+Event names and payloads remain application-defined unless the application supplies a generic event map.
 
-## Event backend compatibility
+## Extend it when the application has a vocabulary
 
-The test suite loads both Node's EventEmitter implementation and the npm browser implementation against the same event contract. See `docs/events-compatibility.md` for the covered behavior and limitations. These Node-based checks do not replace real-browser integration testing.
+```js
+class ApplicationMediator extends Mediator {
+    notifyError(error) {
+        this.emit('application:error', {message: error.message});
+    }
+}
+
+const applicationMediator = new ApplicationMediator();
+applicationMediator.on('application:error', console.error);
+applicationMediator.notifyError(new Error('Unable to load profile'));
+```
+
+Subclassing can provide application-specific vocabulary while preserving the same EventEmitter contract.
+
+## Browser, server, and accessibility
+
+Mediator has no DOM dependency and works through the same event contract in browser and Node.js environments. Because it does not render markup, accessibility and indexing remain responsibilities of the consuming application.
+
+Mediated UI updates should preserve appropriate focus, announce meaningful asynchronous status when necessary, and avoid making important public content dependent on client-only events.
+
+## Event compatibility
+
+The test suite loads both Node's EventEmitter implementation and the npm browser implementation against the same contract. See [`docs/events-compatibility.md`](docs/events-compatibility.md) for covered behavior and limitations. These Node-based checks do not replace application-level browser integration testing.
 
 ## TypeScript
 
-Implementation code uses strict TypeScript. Builds emit JavaScript, source maps with embedded source, and `.d.ts` declarations into `dist`.
+Implementation uses strict TypeScript and emits JavaScript, source maps, and declarations into `dist`.
 
 ```ts
-import Mediator from 'white-label-mediator';
-
 const messages = new Mediator();
 messages.on('greeting', (name: string) => console.log(`Hello, ${name}`));
 messages.emit('greeting', 'Ada');
 messages.destroy();
 ```
 
-The package uses the Node-compatible EventEmitter API. It can be installed and used independently; it has no runtime dependency on the other White Label packages.
-
-## Development and verification
-
-Tests live in `test/*.test.js` and use Node's built-in `node:test` runner, strict assertions, and native mocks.
+## Development
 
 ```sh
 npm ci --ignore-scripts
@@ -152,8 +192,10 @@ npm run audit
 npm pack --dry-run
 ```
 
-`npm test` builds the code, checks TypeScript consumer examples against emitted declarations, and runs the tests. `npm run coverage` enforces **100% statements, branches, functions, and lines for each implementation file**. CI runs the same gate and checks committed build output for drift.
+Coverage enforces 100% statements, branches, functions, and lines per implementation file. CI checks the compiled interface and committed build output for drift.
 
-Tests exercise the compiled JavaScript interface used by downstream callers. Coverage is an execution metric, not proof that all possible inputs or external integrations are correct.
+Edit `src/*.ts` and regenerate `dist`; do not edit generated files directly.
 
-Edit `src/*.ts`, then run the build; do not edit generated `dist` files directly. The npm package publishes the compiled distribution and this README.
+## Design boundary
+
+Mediator moves named events. It intentionally does not own state, rendering, routing, networking, persistence, or application behavior. Keeping that boundary visible is what lets modules communicate without turning the event bus into the application itself.
