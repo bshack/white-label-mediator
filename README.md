@@ -16,7 +16,6 @@ Use it independently or compose it with the rest of White Label:
 - [`white-label-router`](https://github.com/bshack/white-label-router) can listen for `router:navigate` intent.
 - [`white-label-view`](https://github.com/bshack/white-label-view) can publish or consume application events without becoming coupled to other components.
 - [`generator-white-label`](https://github.com/bshack/white-label) demonstrates the pieces together.
-- [`white-label-demo-site`](https://github.com/bshack/white-label-demo-site) contains the complete documentation and live examples.
 
 The package has no runtime dependency on the other White Label packages.
 
