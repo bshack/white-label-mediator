@@ -1,7 +1,7 @@
 {
   "name": "white-label-mediator",
   "version": "4.0.0",
-  "description": "A small browser/Node EventEmitter-compatible application event bus with optional typed events.",
+  "description": "Lightweight TypeScript event bus for loosely coupled browser and Node.js applications, with optional typed events.",
   "sideEffects": false,
   "main": "dist/index.js",
   "files": [
@@ -39,8 +39,10 @@
     "typescript",
     "events",
     "event-bus",
+    "pub-sub",
     "mediator",
     "eventemitter",
+    "framework-independent",
     "browser",
     "node",
     "server-side",
@@ -54,7 +56,7 @@
   "bugs": {
     "url": "https://github.com/bshack/white-label-mediator/issues"
   },
-  "homepage": "https://github.com/bshack/white-label-mediator#readme",
+  "homepage": "https://whitelabeljs.org/docs/mediator/",
   "dependencies": {
     "events": "3.3.0"
   },
