@@ -2,6 +2,7 @@
   "name": "white-label-mediator",
   "version": "4.0.0",
   "description": "A small browser/Node EventEmitter-compatible application event bus with optional typed events.",
+  "sideEffects": false,
   "main": "dist/index.js",
   "files": [
     "dist",
@@ -24,7 +25,7 @@
     "test:unit": "node --test test/*.test.js",
     "coverage": "node --run build && node --run test:types && c8 node --run test:unit",
     "benchmark": "node --run build && node benchmark/mediator.bench.js",
-    "prepack": "node --run build",
+    "prepare": "node --run build",
     "test:types": "tsc -p tsconfig.consumer.json",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
     "lint:fix": "node --run lint -- --fix"
