@@ -170,6 +170,16 @@ Mediator has no DOM dependency and works through the same event contract in brow
 
 Mediated UI updates should preserve appropriate focus, announce meaningful asynchronous status when necessary, and avoid making important public content dependent on client-only events.
 
+## Serverless and function runtimes
+
+Mediator can coordinate modules inside one serverless invocation without introducing a cloud-specific dependency. When listeners or payloads are request-specific, create the Mediator inside the request handler and call `destroy()` before that request-owned lifecycle ends.
+
+Do not rely on a module-level Mediator for request isolation merely because the platform is called “serverless.” Function processes can stay warm and handle many requests, so listeners and request data can survive into later invocations when the same mutable instance is reused.
+
+Mediator is an in-memory event bus. It does **not** replace SQS, SNS, EventBridge, Kafka, Pub/Sub, durable queues, retries, or communication between separate function instances. Use distributed infrastructure for events that must cross process/runtime boundaries or survive failures.
+
+The package currently documents Node.js as its supported server runtime. Browser/Web-target bundling through the `events` package can be useful as a portability signal, but it should not be treated as blanket compatibility with every edge provider without provider-specific verification.
+
 ## Event compatibility
 
 The test suite loads both Node's EventEmitter implementation and the npm browser implementation against the same contract. See [`docs/events-compatibility.md`](docs/events-compatibility.md) for covered behavior and limitations. These Node-based checks do not replace application-level browser integration testing.
