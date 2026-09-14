@@ -2,7 +2,9 @@
 
 > Application events without application coupling.
 
-`white-label-mediator` is a small Node-compatible event bus. It lets models, views, routers, and application modules exchange named messages without importing or calling one another directly.
+`white-label-mediator` is a lightweight TypeScript and JavaScript event bus for loosely coupled browser and Node.js applications. It provides EventEmitter-compatible publish/subscribe behavior so models, views, routers, and application modules can exchange named messages without importing or calling one another directly.
+
+[Documentation](https://whitelabeljs.org/docs/mediator/) · [API reference](https://whitelabeljs.org/api/#mediator) · [Demo site](https://whitelabeljs.org/)
 
 **Responsibility:** move application intent between independent pieces. Nothing more.
 
