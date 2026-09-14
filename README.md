@@ -22,11 +22,14 @@ The package has no runtime dependency on the other White Label packages.
 ## Requirements
 
 - Node.js `^22.18.0` or `>=24.11.0` for installation and development
+- npm, Yarn, and pnpm are supported for installation; see [`PACKAGE_MANAGERS.md`](PACKAGE_MANAGERS.md)
 
 ## Install
 
 ```sh
 npm install white-label-mediator
+# or: yarn add white-label-mediator
+# or: pnpm add white-label-mediator
 ```
 
 ```js
@@ -193,7 +196,7 @@ npm run audit
 npm pack --dry-run
 ```
 
-Coverage enforces 100% statements, branches, functions, and lines per implementation file. CI checks the compiled interface and committed build output for drift.
+Coverage enforces 100% statements, branches, functions, and lines per implementation file. CI builds authored source, uploads generated artifacts for inspection, audits dependencies, packs the package, and verifies the packed public API across npm, Yarn, and pnpm.
 
 Edit `src/*.ts` and regenerate `dist`; do not edit generated files directly.
 
