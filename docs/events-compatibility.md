@@ -2,7 +2,7 @@
 
 ## Runtime model
 
-White Label Mediator v5 extends the platform `EventTarget` class directly. Payload-bearing application messages use `CustomEvent` and place data in `event.detail`. Listener lifecycle uses `AbortController` and standard EventTarget options.
+White Label Mediator v5 extends the platform `EventTarget` class directly. Payload-bearing application messages use `CustomEvent` and place data in `event.detail`. Mediator explicitly tracks the native listener registrations it owns so lifecycle cleanup does not depend on a shared internal `AbortSignal`.
 
 There is no runtime event-emitter dependency in v5.
 
@@ -12,12 +12,14 @@ The regression suite protects the behavior White Label depends on:
 
 - synchronous native `dispatchEvent()` delivery;
 - listener callbacks receiving the dispatched `CustomEvent` and original `detail` references;
-- standard `once` and `signal` listener options;
+- standard `once`, `capture`, `passive`, and caller-provided `signal` options;
+- inherited and non-enumerable EventTarget option properties;
 - standard duplicate-registration behavior;
 - explicit `removeEventListener()` cleanup;
 - lifecycle-wide cleanup through `destroy()`;
-- combination of a caller-provided AbortSignal with the mediator lifecycle signal;
-- reusing a mediator after `destroy()` creates a fresh lifecycle scope;
+- forced-GC cleanup for mediator-owned listeners and listeners sharing a caller AbortSignal;
+- re-registering listeners after `once` or signal-driven cleanup;
+- reusing a mediator after `destroy()`;
 - native `dispatchEvent()` cancellation return semantics; and
 - the same contract in supported Node runtimes without `window` or `document`.
 
@@ -44,11 +46,13 @@ The following EventEmitter-specific behaviors are intentionally not reproduced:
 - `prependListener` and `prependOnceListener`;
 - `eventNames`, `listeners`, `rawListeners`, and `listenerCount` inspection;
 - `newListener` and `removeListener` meta-events;
-- EventEmitter maximum-listener warnings;
+- EventEmitter maximum-listener APIs;
 - special unhandled `error` event throwing; and
 - EventEmitter duplicate-registration/removal rules.
 
 Use ordinary JavaScript exceptions for errors rather than relying on EventEmitter's special `error` event behavior.
+
+Listener exceptions also follow EventTarget semantics. In particular, callers should not depend on a listener exception being rethrown directly from `dispatchEvent()` the way EventEmitter listener exceptions propagate from `emit()`.
 
 ## dispatchEvent return value
 
@@ -56,10 +60,16 @@ Use ordinary JavaScript exceptions for errors rather than relying on EventEmitte
 
 ## Lifecycle cleanup
 
-Listeners registered with `mediator.addEventListener()` are automatically combined with an internal lifecycle signal. `destroy()` aborts that signal and creates a fresh controller, which removes all mediator-scoped listeners while keeping the instance reusable.
+Mediator records each native EventTarget registration by event type, original callback, and capture mode. `destroy()` removes those owned registrations explicitly and leaves the mediator reusable.
 
-When a caller also passes `{signal}`, Mediator combines it with the lifecycle signal through `AbortSignal.any()`. Either abort releases the listener.
+One-time registrations are removed from both EventTarget and the ownership registry before their callback is invoked, preserving re-entrant `once` behavior. Explicit `removeEventListener()` calls update the same registry.
+
+Caller-provided AbortSignals remain supported, but Mediator does not pass a shared lifecycle signal through every EventTarget registration. Registrations sharing one caller signal are grouped behind one abort handler, and abort removes the corresponding native listeners and ownership records.
+
+This design avoids relying on Node's signal-backed EventTarget listener-retention path for mediator lifecycle cleanup. Regression coverage runs a child process with `--expose-gc` so cleanup remains verified even after forced garbage collection.
+
+Mediator also uses the object form of `{capture}` for owned removals. Supported Node versions have differed in boolean capture-removal behavior when the same callback is registered in both capture modes; normalizing owned removal avoids exposing that runtime inconsistency through Mediator.
 
 ## Browser verification
 
-`test/browser-smoke.js` can be bundled for a browser-aware build and exercises `CustomEvent`, `once`, AbortSignal cleanup, and `destroy()` without an EventEmitter polyfill.
+`test/browser-smoke.js` can be bundled for a browser-aware build and exercises `CustomEvent`, `once`, caller AbortSignal cleanup, and `destroy()` without an EventEmitter polyfill.
