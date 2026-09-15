@@ -2,7 +2,7 @@
 
 `white-label-mediator` uses the same web-standard event contract in browser and supported Node.js server applications.
 
-The package does not require `window` or `document`. It relies on the global `EventTarget`, `CustomEvent`, `AbortController`, and `AbortSignal.any` implementations provided by modern runtimes, so there is no browser event-emitter shim or runtime dependency.
+The package does not require `window` or `document`. It relies on the global `EventTarget`, `CustomEvent`, `AbortController`, and `AbortSignal.any` implementations provided by modern runtimes and has no runtime dependencies.
 
 ```js
 import Mediator from 'white-label-mediator';
