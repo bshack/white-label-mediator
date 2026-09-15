@@ -60,9 +60,13 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         const normalizedType = typeof type === 'string' ? type : `${type}`;
         const normalizedCallback = this.#normalizeCallback(callback);
         const normalized = this.#normalizeAddOptions(options);
+        const signalRecord = normalized.signal === undefined
+            ? undefined
+            : this.#signals.get(normalized.signal);
         const signalAborted = normalized.signal === undefined
             ? false
-            : Boolean(Reflect.apply(abortSignalAborted, normalized.signal, []));
+            : signalRecord?.signal.aborted
+                ?? Boolean(Reflect.apply(abortSignalAborted, normalized.signal, []));
 
         if (!normalizedCallback) {return;}
         if (this.#getRecord(normalizedType, normalizedCallback, normalized.capture)) {return;}
@@ -70,7 +74,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
 
         const dependentSignal = normalized.signal === undefined
             ? undefined
-            : this.#prepareSignal(normalized.signal);
+            : signalRecord?.signal ?? AbortSignal.any([normalized.signal]);
         const thisMediator = this;
         const registrationToken = this.#dispatchToken;
         const needsWrapper = normalized.once
@@ -196,11 +200,6 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         if (value === undefined || value === null) {return false;}
         if (typeof value !== 'object' && typeof value !== 'function') {return Boolean(value);}
         return Boolean((value as EventListenerOptions).capture);
-    }
-
-    #prepareSignal(signal: AbortSignal): AbortSignal {
-        const current = this.#signals.get(signal);
-        return current?.signal ?? AbortSignal.any([signal]);
     }
 
     #getRecord(type: string, callback: Listener, capture: boolean) {
