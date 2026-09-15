@@ -171,6 +171,14 @@ describe('Mediator', () => {
         assert.equal(listener.calls, 1);
     });
 
+    it('re-reads EventListener object handleEvent at dispatch time', () => {
+        const mediator = new Mediator();
+        const listener = {handleEvent: mock.fn()};
+        mediator.addEventListener('ready', listener, {once: true});
+        listener.handleEvent = undefined;
+        assert.doesNotThrow(() => mediator.dispatchEvent(new CustomEvent('ready')));
+    });
+
     it('accepts boolean listener options and null callbacks', () => {
         const mediator = new Mediator();
         const callback = mock.fn();
