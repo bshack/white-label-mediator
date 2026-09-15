@@ -1,19 +1,21 @@
 # Runtime compatibility
 
-`white-label-mediator` uses the same public class and EventEmitter-compatible API in browser and Node.js server applications.
+`white-label-mediator` uses the same web-standard event contract in browser and supported Node.js server applications.
 
-The package does not require `window` or `document`. The `events` dependency supplies the same EventEmitter-style contract to browser bundles while Node applications use the package through the same `Mediator` import and methods.
+The package does not require `window` or `document`. It relies on the global `EventTarget`, `CustomEvent`, `AbortController`, and `AbortSignal.any` implementations provided by modern runtimes, so there is no browser event-emitter shim or runtime dependency.
 
 ```js
 import Mediator from 'white-label-mediator';
 
 const mediator = new Mediator();
-mediator.on('request:complete', payload => {
-    console.log(payload);
+mediator.addEventListener('request:complete', event => {
+    console.log(event.detail);
 });
-mediator.emit('request:complete', {ok: true});
+mediator.dispatchEvent(new CustomEvent('request:complete', {
+    detail: {ok: true}
+}));
 ```
 
 For request-specific server events, scope a mediator to the request or another intentional lifetime. A singleton mediator is appropriate only for events that are intentionally application-wide; otherwise listeners and request data can cross request boundaries.
 
-The regression suite explicitly executes the mediator with no `window` or `document` globals and verifies synchronous ordering, `once`, teardown, and isolation between separately scoped mediator instances.
+The regression suite explicitly executes the mediator with no `window` or `document` globals and verifies synchronous delivery, `once`, AbortSignal behavior, teardown, and isolation between separately scoped mediator instances.

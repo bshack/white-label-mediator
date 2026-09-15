@@ -1,23 +1,23 @@
 ---
 name: Feature request
-about: Propose a focused improvement
-title: ""
-labels: enhancement
-assignees: ""
+about: Suggest an improvement for white-label-mediator
+title: ''
+labels: ''
+assignees: ''
 ---
 
 ## Problem
 
-What developer problem should this solve?
+Describe the application-event problem this request would solve.
 
-## Proposed outcome
+## Proposed behavior
 
-Describe the desired behavior without prescribing unnecessary implementation details.
+Describe the smallest useful behavior or API change.
 
 ## Fit with package scope
 
-Explain how this belongs within a small EventEmitter-compatible application event bus.
+Explain how this belongs within a small standards-based EventTarget application event bus.
 
 ## Alternatives and constraints
 
-List existing capabilities or simpler approaches considered, plus compatibility, security, or performance implications.
+Describe alternatives considered, compatibility concerns, and any relevant browser or Node.js runtime requirements.

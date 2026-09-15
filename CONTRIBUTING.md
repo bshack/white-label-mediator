@@ -18,7 +18,7 @@ npm pack --dry-run
 
 ## Pull requests
 
-Keep changes focused, preserve the documented EventEmitter-compatible contract, and avoid adding runtime coupling to other White Label packages. Add or update tests when behavior changes, and do not weaken coverage, lint, type, or security checks to make a change pass.
+Keep changes focused, preserve the documented standards-based EventTarget contract, and avoid adding runtime coupling to other White Label packages. Add or update tests when behavior changes, and do not weaken coverage, lint, type, or security checks to make a change pass.
 
 Before requesting review, inspect the complete diff for generated-file drift, credentials, private data, debugging code, and unrelated formatting changes. Breaking public API changes require a SemVer major release rather than compatibility shims.
 

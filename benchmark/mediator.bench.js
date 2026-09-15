@@ -1,8 +1,7 @@
 'use strict';
 
-const EventEmitter = require('events');
 const Mediator = require('../dist');
-const { performance } = require('node:perf_hooks');
+const {performance} = require('node:perf_hooks');
 
 const rounds = 5;
 
@@ -13,138 +12,45 @@ function median(values) {
 
 function measure(callback) {
     const samples = [];
-
     for (let round = 0; round < rounds; round += 1) {
         const start = performance.now();
         callback();
         samples.push(performance.now() - start);
     }
-
     return median(samples);
 }
 
-function formatComparison(mediatorTime, emitterTime) {
-    const difference = ((mediatorTime / emitterTime) - 1) * 100;
-    const sign = difference >= 0 ? '+' : '';
-    return `${sign}${difference.toFixed(1)}%`;
-}
-
-function benchmarkEmit(listenerCount) {
-    const iterations = Math.max(10_000, Math.floor(10_000_000 / listenerCount));
-    const listener = () => {};
-
-    function run(Emitter) {
-        const emitter = new Emitter();
-        emitter.setMaxListeners(0);
-
-        for (let index = 0; index < listenerCount; index += 1) {
-            emitter.on('event', listener);
+function benchmarkDispatch(Target, listenerCount) {
+    const iterations = Math.max(10_000, Math.floor(2_000_000 / listenerCount));
+    const target = new Target();
+    for (let index = 0; index < listenerCount; index += 1) {
+        target.addEventListener(`event:${index}`, () => {});
+    }
+    const event = new CustomEvent('event:0', {detail: 1});
+    return measure(() => {
+        for (let index = 0; index < iterations; index += 1) {
+            target.dispatchEvent(event);
         }
+    });
+}
 
-        for (let index = 0; index < 10_000; index += 1) {
-            emitter.emit('event', index);
+function benchmarkLifecycle() {
+    const iterations = 100_000;
+    return measure(() => {
+        for (let index = 0; index < iterations; index += 1) {
+            const mediator = new Mediator();
+            mediator.addEventListener('event', () => {});
+            mediator.destroy();
         }
-
-        return measure(() => {
-            for (let index = 0; index < iterations; index += 1) {
-                emitter.emit('event', index);
-            }
-        });
-    }
-
-    const emitterTime = run(EventEmitter);
-    const mediatorTime = run(Mediator);
-
-    return {
-        operation: `emit (${listenerCount} listener${listenerCount === 1 ? '' : 's'})`,
-        iterations,
-        emitterMs: emitterTime.toFixed(2),
-        mediatorMs: mediatorTime.toFixed(2),
-        delta: formatComparison(mediatorTime, emitterTime)
-    };
+    });
 }
 
-function benchmarkListenerLifecycle() {
-    const iterations = 250_000;
-    const listener = () => {};
-
-    function run(Emitter) {
-        const emitter = new Emitter();
-
-        return measure(() => {
-            for (let index = 0; index < iterations; index += 1) {
-                emitter.on('event', listener);
-                emitter.removeListener('event', listener);
-            }
-        });
-    }
-
-    const emitterTime = run(EventEmitter);
-    const mediatorTime = run(Mediator);
-
-    return {
-        operation: 'on + removeListener',
-        iterations,
-        emitterMs: emitterTime.toFixed(2),
-        mediatorMs: mediatorTime.toFixed(2),
-        delta: formatComparison(mediatorTime, emitterTime)
-    };
-}
-
-function benchmarkOnce() {
-    const iterations = 100_000;
-    const listener = () => {};
-
-    function run(Emitter) {
-        const emitter = new Emitter();
-
-        return measure(() => {
-            for (let index = 0; index < iterations; index += 1) {
-                emitter.once('event', listener);
-                emitter.emit('event', index);
-            }
-        });
-    }
-
-    const emitterTime = run(EventEmitter);
-    const mediatorTime = run(Mediator);
-
-    return {
-        operation: 'once + emit',
-        iterations,
-        emitterMs: emitterTime.toFixed(2),
-        mediatorMs: mediatorTime.toFixed(2),
-        delta: formatComparison(mediatorTime, emitterTime)
-    };
-}
-
-function benchmarkDestroy() {
-    const iterations = 100_000;
-    const listener = () => {};
-
-    return {
-        operation: 'destroy',
-        iterations,
-        mediatorMs: measure(() => {
-            for (let index = 0; index < iterations; index += 1) {
-                const mediator = new Mediator();
-                mediator.on('event', listener);
-                mediator.destroy();
-            }
-        }).toFixed(2)
-    };
-}
-
-const results = [
-    benchmarkEmit(1),
-    benchmarkEmit(10),
-    benchmarkEmit(100),
-    benchmarkEmit(1_000),
-    benchmarkListenerLifecycle(),
-    benchmarkOnce(),
-    benchmarkDestroy()
-];
+const results = [1, 10, 100].map(listenerCount => ({
+    operation: `dispatch (${listenerCount} registered type${listenerCount === 1 ? '' : 's'})`,
+    eventTargetMs: benchmarkDispatch(EventTarget, listenerCount).toFixed(2),
+    mediatorMs: benchmarkDispatch(Mediator, listenerCount).toFixed(2)
+}));
+results.push({operation: 'add + destroy', mediatorMs: benchmarkLifecycle().toFixed(2)});
 
 console.table(results);
-console.log('Times are medians of five rounds. Lower is better; delta compares Mediator with EventEmitter.');
-console.log('Benchmarks are diagnostic only and intentionally do not enforce CI thresholds.');
+console.log('Times are medians of five rounds. Benchmarks are diagnostic only and do not enforce CI thresholds.');

@@ -1,96 +1,91 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const {describe, it, beforeEach, afterEach, mock} = require('node:test');
-const {isDeepStrictEqual} = require('node:util');
-
-afterEach(() => mock.restoreAll());
-
+const {describe, it, mock} = require('node:test');
 const Mediator = require('../dist/index');
-let mediator = {};
 
-// canary
-describe("A suite", function() {
-    it("contains spec with an expectation", function() {
-        assert.equal(true, true);
+describe('Mediator', () => {
+    it('is a standards-based EventTarget with lifecycle chaining', () => {
+        const mediator = new Mediator();
+        assert.ok(mediator instanceof EventTarget);
+        assert.equal(mediator.initialize(), mediator);
+        assert.equal(mediator.destroy(), mediator);
     });
-});
 
-describe("A Mediator", function() {
-    let callback, initFunction;
-    beforeEach(function() {
-        initFunction = mock.fn();
-        const MediatorTest = class extends Mediator {
-            initialize() {
-                initFunction();
-            }
-            extendedFunction() {
-
-            }
-        };
-        mediator = new MediatorTest();
-        callback = mock.fn();
-        mediator.on('main-menu', callback);
-    });
-    afterEach(function() {
-        mediator = {};
-        callback = undefined;
-    });
-    it("is an object", function() {
-        assert.ok(mediator instanceof Object);
-    });
-    it("has an initialize function", function() {
-        assert.ok(typeof mediator.initialize === 'function');
-    });
-    it("has a emit function", function() {
-        assert.ok(typeof mediator.emit === 'function');
-    });
-    it("has a on function", function() {
-        assert.ok(typeof mediator.on === 'function');
-    });
-    it("emits an event on emit", function() {
-        mediator.emit('main-menu', {
-            state: 'open'
+    it('dispatches CustomEvent payloads synchronously', () => {
+        const mediator = new Mediator();
+        const received = [];
+        mediator.addEventListener('menu:state', function(event) {
+            assert.equal(this, mediator);
+            received.push(event.detail);
         });
-        assert.ok(callback.mock.callCount() > 0);
+
+        const delivered = mediator.dispatchEvent(new CustomEvent('menu:state', {detail: {open: true}}));
+        assert.equal(delivered, true);
+        assert.deepEqual(received, [{open: true}]);
     });
-    it("emits an event on emit with data", function() {
-        mediator.emit('main-menu', {
-            state: 'open'
-        });
-        assert.ok(callback.mock.calls.some(call => isDeepStrictEqual(call.arguments, [{
-            state: 'open'
-        }])));
-    });
-    it("emits an event on emit without data", function() {
-        mediator.emit('main-menu');
-        assert.ok(callback.mock.calls.some(call => isDeepStrictEqual(call.arguments, [])));
-    });
-    it("executes the initialize function", function() {
-        mediator.initialize();
-        assert.ok(initFunction.mock.callCount() > 0);
-    });
-    it("executes the initialize function and returns 'this'", function() {
-        let mediator = new Mediator();
-        let result = mediator.initialize();
-        assert.ok(result instanceof Object);
-    });
-    it("removes event listeners when destroyed", function() {
-        mediator.destroy();
-        assert.deepEqual(mediator.listenerCount('main-menu'), 0);
-    });
-    it("supports one-time and explicitly removed typed listeners", function() {
+
+    it('supports standard once and explicit removal semantics', () => {
+        const mediator = new Mediator();
         const callback = mock.fn();
-        mediator.once('ready', callback);
-        mediator.emit('ready', 'Ada');
-        mediator.emit('ready', 'Grace');
-        assert.deepEqual(callback.mock.calls.map(call => call.arguments), [['Ada']]);
-        mediator.on('stopped', callback);
-        mediator.removeListener('stopped', callback);
-        mediator.emit('stopped');
+        mediator.addEventListener('ready', callback, {once: true});
+        mediator.dispatchEvent(new CustomEvent('ready', {detail: 'Ada'}));
+        mediator.dispatchEvent(new CustomEvent('ready', {detail: 'Grace'}));
+        assert.equal(callback.mock.callCount(), 1);
+        assert.equal(callback.mock.calls[0].arguments[0].detail, 'Ada');
+
+        mediator.addEventListener('stopped', callback);
+        mediator.removeEventListener('stopped', callback);
+        mediator.dispatchEvent(new CustomEvent('stopped'));
         assert.equal(callback.mock.callCount(), 1);
     });
-    it("is extendable", function() {
-        assert.ok(typeof mediator.extendedFunction === 'function');
+
+    it('uses native duplicate-registration semantics', () => {
+        const mediator = new Mediator();
+        const callback = mock.fn();
+        mediator.addEventListener('ready', callback);
+        mediator.addEventListener('ready', callback);
+        mediator.dispatchEvent(new CustomEvent('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+    });
+
+    it('combines caller abort signals with mediator lifecycle cleanup', () => {
+        const mediator = new Mediator();
+        const controller = new AbortController();
+        const callback = mock.fn();
+        mediator.addEventListener('ready', callback, {signal: controller.signal});
+        controller.abort();
+        mediator.dispatchEvent(new CustomEvent('ready'));
+        assert.equal(callback.mock.callCount(), 0);
+    });
+
+    it('accepts boolean listener options and null callbacks', () => {
+        const mediator = new Mediator();
+        const callback = mock.fn();
+        mediator.addEventListener('ready', callback, false);
+        mediator.addEventListener('ready', null);
+        mediator.dispatchEvent(new CustomEvent('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+    });
+
+    it('removes lifecycle-scoped listeners on destroy and can be reused', () => {
+        const mediator = new Mediator();
+        const first = mock.fn();
+        const second = mock.fn();
+        mediator.addEventListener('ready', first);
+        mediator.destroy();
+        mediator.dispatchEvent(new CustomEvent('ready'));
+        assert.equal(first.mock.callCount(), 0);
+
+        mediator.addEventListener('ready', second);
+        mediator.dispatchEvent(new CustomEvent('ready'));
+        assert.equal(second.mock.callCount(), 1);
+    });
+
+    it('preserves native dispatchEvent cancellation behavior', () => {
+        const mediator = new Mediator();
+        mediator.addEventListener('before:save', event => event.preventDefault());
+        const result = mediator.dispatchEvent(new CustomEvent('before:save', {cancelable: true}));
+        assert.equal(result, false);
     });
 });

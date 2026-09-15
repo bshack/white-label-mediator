@@ -1,73 +1,65 @@
 /** @module src/index */
-import EventEmitter from 'events';
 
+type EventListenerFor<Detail> = {bivarianceHack(event: CustomEvent<Detail>): void}['bivarianceHack'];
 
+/**
+ * Standards-based synchronous application event bus.
+ *
+ * Event payloads travel in CustomEvent.detail. Listeners added through this
+ * instance are automatically scoped to its lifecycle and are removed by destroy().
+ */
+class Mediator<Events extends object = Record<string, unknown>> extends EventTarget {
+    #controller = new AbortController();
 
-
-type EventArguments<T> = T extends unknown[] ? T : never;
-
-/** Synchronous event bus with optional compile-time event and payload contracts. */
-class Mediator<Events extends object = Record<string | symbol, any[]>> extends EventEmitter {
-
-    /**
-     * Create an instance with its own state and listener references.
-     */
-    constructor() {
-
-        super();
-
-    }
-
-    /**
-     * Start this instance and return it for lifecycle chaining.
-     * @returns This instance for chaining.
-     */
+    /** Start this instance and return it for lifecycle chaining. */
     initialize() {
-
         return this;
+    }
 
+    /** Add a lifecycle-scoped listener with optional typed CustomEvent detail. */
+    override addEventListener<Name extends keyof Events & string>(
+        type: Name,
+        callback: EventListenerFor<Events[Name]> | EventListenerObject | null,
+        options?: boolean | AddEventListenerOptions
+    ): void;
+    override addEventListener(
+        type: string,
+        callback: EventListenerOrEventListenerObject | null,
+        options?: boolean | AddEventListenerOptions
+    ): void {
+        if (!callback) {return;}
+
+        const normalizedOptions = typeof options === 'boolean' ? {capture: options} : {...options};
+        const signal = normalizedOptions.signal
+            ? AbortSignal.any([this.#controller.signal, normalizedOptions.signal])
+            : this.#controller.signal;
+
+        super.addEventListener(type, callback, {...normalizedOptions, signal});
+    }
+
+    /** Remove a previously registered listener using standard EventTarget matching rules. */
+    override removeEventListener<Name extends keyof Events & string>(
+        type: Name,
+        callback: EventListenerFor<Events[Name]> | EventListenerObject | null,
+        options?: boolean | EventListenerOptions
+    ): void;
+    override removeEventListener(
+        type: string,
+        callback: EventListenerOrEventListenerObject | null,
+        options?: boolean | EventListenerOptions
+    ): void {
+        super.removeEventListener(type, callback, options);
     }
 
     /**
-     * Release owned state and listeners so the instance can leave the application lifecycle.
-     * @returns This instance after cleanup.
+     * Remove listeners registered through this instance and reset lifecycle scope.
+     * The mediator can be initialized and subscribed again after destruction.
      */
     destroy() {
-
-        // Release subscriber references when a mediator leaves the application lifecycle.
-        this.removeAllListeners();
-
+        this.#controller.abort();
+        this.#controller = new AbortController();
         return this;
     }
-
-};
-
-/** Compile-time event and payload contracts without adding runtime wrappers. */
-interface Mediator<Events extends object = Record<string | symbol, any[]>> {
-
-    on<Name extends keyof Events & (string | symbol)>(
-        eventName: Name,
-        listener: (...arguments_: EventArguments<Events[Name]>) => void
-    ): this;
-
-    once<Name extends keyof Events & (string | symbol)>(
-        eventName: Name,
-        listener: (...arguments_: EventArguments<Events[Name]>) => void
-    ): this;
-
-    emit<Name extends keyof Events & (string | symbol)>(
-        eventName: Name,
-        ...arguments_: EventArguments<Events[Name]>
-    ): boolean;
-
-    removeListener<Name extends keyof Events & (string | symbol)>(
-        eventName: Name,
-        listener: (...arguments_: EventArguments<Events[Name]>) => void
-    ): this;
-
 }
-
-
-
 
 export = Mediator;

@@ -1,16 +1,21 @@
 import Mediator from '../dist/index.js';
+
 const mediator = new Mediator();
-mediator.on('ready', (value: string) => value.toUpperCase());
-mediator.emit('ready', 'Ada');
+mediator.addEventListener('ready', event => event.detail);
+mediator.dispatchEvent(new CustomEvent('ready', {detail: 'Ada'}));
 mediator.initialize().destroy();
-const typed = new Mediator<{ready: [name: string]; stopped: []}>();
-const readyListener = (name: string) => name.toUpperCase();
-typed.on('ready', readyListener);
-typed.once('ready', readyListener);
-typed.emit('ready', 'Ada');
-typed.emit('stopped');
-typed.removeListener('ready', readyListener);
-// @ts-expect-error unknown event names are rejected for typed mediators.
-typed.emit('missing');
-// @ts-expect-error event payloads must match the declared tuple.
-typed.emit('ready', 42);
+
+type Events = {
+    ready: {name: string};
+    stopped: undefined;
+};
+const typed = new Mediator<Events>();
+const readyListener = (event: CustomEvent<{name: string}>) => event.detail.name.toUpperCase();
+typed.addEventListener('ready', readyListener);
+typed.addEventListener('stopped', event => event.detail);
+typed.dispatchEvent(new CustomEvent('ready', {detail: {name: 'Ada'}}));
+typed.removeEventListener('ready', readyListener);
+// @ts-expect-error unknown event names are rejected for typed listener registration.
+typed.addEventListener('missing', () => {});
+// @ts-expect-error listener detail must match the declared event map.
+typed.addEventListener('ready', (event: CustomEvent<number>) => event.detail.toFixed());
