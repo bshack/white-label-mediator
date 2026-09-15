@@ -62,6 +62,18 @@ function benchmarkLifecycle(Target, iterations) {
     });
 }
 
+function benchmarkSharedSignal(Target, listenerCount) {
+    return measure(() => {
+        const target = new Target();
+        const controller = new AbortController();
+        setMaxListeners(0, target, controller.signal);
+        for (let index = 0; index < listenerCount; index += 1) {
+            target.addEventListener(`event:${index}`, () => {}, {signal: controller.signal});
+        }
+        controller.abort();
+    });
+}
+
 const cases = [
     {listeners: 1, iterations: 500_000},
     {listeners: 10, iterations: 100_000},
@@ -84,6 +96,13 @@ console.table([{
     eventTargetMs: benchmarkLifecycle(EventTarget, 100_000).toFixed(2),
     mediatorMs: benchmarkLifecycle(Mediator, 100_000).toFixed(2)
 }]);
+console.table([100, 1_000, 10_000].map(listeners => ({
+    operation: 'shared signal add + abort',
+    listeners,
+    eventTargetMs: benchmarkSharedSignal(EventTarget, listeners).toFixed(2),
+    mediatorMs: benchmarkSharedSignal(Mediator, listeners).toFixed(2)
+})));
 console.log('Medians of seven rounds. EventEmitter approximates the v4 Node runtime path.');
 console.log('Publish columns include CustomEvent allocation; reused dispatch isolates dispatch cost.');
+console.log('Shared-signal cases include registration and abort-driven cleanup.');
 console.log('Benchmarks are diagnostic only and do not enforce CI thresholds.');
