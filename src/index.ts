@@ -60,7 +60,6 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         if (normalized.signal && AbortSignal.any([normalized.signal]).aborted) {return;}
 
         const thisMediator = this;
-        let record: ListenerRecord;
         const listener: Listener = normalized.once
             ? function(this: EventTarget, event: Event) {
                 thisMediator.#removeRecord(record);
@@ -71,15 +70,14 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
                 }
             }
             : callback;
+        const record: ListenerRecord = normalized.signal
+            ? {type, callback, listener, capture: normalized.capture, signal: normalized.signal}
+            : {type, callback, listener, capture: normalized.capture};
 
         super.addEventListener(type, listener, {
             capture: normalized.capture,
             passive: normalized.passive
         });
-
-        record = normalized.signal
-            ? {type, callback, listener, capture: normalized.capture, signal: normalized.signal}
-            : {type, callback, listener, capture: normalized.capture};
         this.#storeRecord(record);
 
         if (normalized.signal) {
@@ -139,8 +137,8 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
             return {capture, once, passive};
         }
 
-        // AbortSignal.any performs the same platform brand validation without
-        // wiring every listener through Node's signal-backed EventTarget path.
+        // AbortSignal.any performs platform brand validation without wiring every
+        // listener through Node's signal-backed EventTarget registration path.
         AbortSignal.any([signal]);
         return {capture, once, passive, signal};
     }
