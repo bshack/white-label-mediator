@@ -2,9 +2,9 @@
 
 # Repository Guide — white-label-mediator
 
-EventEmitter-compatible application event bus with optional typed event maps.
+Standards-based EventTarget application event bus with optional typed event-detail maps.
 
-Verified against `package.json`, `README.md`, and `.github/workflows/security.yml` on September 13, 2026. Recheck those files when commands or supported environments change.
+Verified against `package.json`, `README.md`, and `.github/workflows/security.yml` on September 15, 2026. Recheck those files when commands or supported environments change.
 
 ## Code map
 
@@ -39,7 +39,7 @@ Edit authored TypeScript, not compiled JavaScript or declarations. Generate `dis
 
 ## Architectural boundaries
 
-Preserve synchronous EventEmitter ordering and standard listener APIs. Component teardown removes its own callbacks; destroying a shared mediator must not be used to clean up one component. Typed event maps do not supply runtime validation.
+Preserve synchronous EventTarget dispatch and standard listener APIs. Application payloads use `CustomEvent.detail`. Component teardown removes its own callbacks; destroying a shared mediator must not be used to clean up one component. Typed event-detail maps do not supply runtime validation.
 
 ---
 
@@ -195,7 +195,7 @@ Record relevant pre-existing test, build, lint, formatting, or type-check failur
 
 # 6. Reuse Existing Code Before Creating New Code
 
-**Always look for reusable functionality before creating new code.**
+**Always look for reusable functionality before creating anything new.**
 
 Search for:
 
@@ -657,7 +657,6 @@ Change versions only when requested or required by the established release workf
 Keep package versions distinct from deployment asset labels. Do not synchronize independently versioned packages or upgrade consumers automatically. Tagging, publishing, merging, and deployment require their own applicable authorization.
 
 ---
-
 # 24. CI/CD and Infrastructure
 
 Obtain approval before making significant changes to:
@@ -878,96 +877,3 @@ Instead:
 Do not make a potentially incorrect implementation simply to avoid asking a question.
 
 For routine, reversible details that are supported by repository conventions, proceed without unnecessary clarification. Clearly disclose any material assumption.
-
----
-
-# 30A. Accessibility and Search Indexability
-
-All applicable code and user-interface changes that an agent suggests or makes must target WCAG 2.2 Level AA conformance and preserve or improve search-engine indexability.
-
-For accessibility, agents must:
-
-- Use semantic HTML and valid landmark, heading, list, table, and form structure.
-- Preserve complete keyboard operation, visible focus, logical focus order, and focus that is not obscured.
-- Provide programmatic names, instructions, errors, status announcements, and text alternatives where applicable.
-- Meet applicable contrast, reflow, zoom, motion, pointer target, and non-pointer input requirements.
-- Prefer native HTML controls and behavior before adding ARIA.
-- Test applicable changes with the repository's automated accessibility checks and document the manual checks needed for criteria automation cannot establish.
-- Never claim full WCAG conformance from automated testing alone; state the target, test scope, and any unverified criteria.
-
-For search indexability, agents must:
-
-- Render meaningful public content and crawlable links in the initial HTML response whenever applicable.
-- Preserve accurate unique titles, descriptions, canonical URLs, headings, robots directives, and structured data.
-- Keep important pages internally discoverable and include them in the sitemap when the project produces one.
-- Ensure robots rules, `noindex`, authentication, client-side routing, or JavaScript do not unintentionally hide public content from search engines.
-- Test generated output for crawlable URLs, metadata, canonical consistency, sitemap coverage, and the absence of unintended indexing blocks.
-
-If a requested product is private, authenticated, duplicated, or intentionally excluded from search, document that exception and implement the correct explicit indexing policy rather than forcing public indexing.
-
----
-
-# 31. Definition of Done
-
-Before declaring a task complete, verify all applicable items:
-
-- [ ] Repository instructions were read.
-- [ ] Existing code was inspected.
-- [ ] The issue was reproduced or a relevant baseline was established when practical.
-- [ ] Pre-existing validation failures were distinguished from newly introduced failures.
-- [ ] Existing reusable functionality was investigated.
-- [ ] Requirements were understood without inventing behavior.
-- [ ] The implementation is evidence-based.
-- [ ] No unsupported assumptions were made.
-- [ ] Existing user work was preserved.
-- [ ] Changes remain within the requested scope.
-- [ ] The simplest appropriate solution was used.
-- [ ] Existing project conventions were followed.
-- [ ] The prescribed runtime, package manager, lockfile, and task runner were used.
-- [ ] Generated files were handled through their source or generator when applicable.
-- [ ] Remote writes used a verified task branch and explicit branch/ref unless the user explicitly requested a direct default-branch write.
-- [ ] Documentation/comments were added where appropriate.
-- [ ] Relevant tests were run.
-- [ ] Tests were not weakened simply to make them pass.
-- [ ] Relevant linting was run.
-- [ ] Formatting was verified.
-- [ ] Build/type checks were run when applicable.
-- [ ] Security considerations were reviewed.
-- [ ] Applicable changes target WCAG 2.2 Level AA and automated plus required manual accessibility verification was completed or explicitly documented.
-- [ ] Applicable public content is search-engine indexable, with rendered-content, metadata, canonical, robots, crawlable-link, and sitemap checks completed.
-- [ ] Supported platform and runtime compatibility was reviewed when applicable.
-- [ ] The complete diff was reviewed.
-- [ ] No secrets or sensitive information were introduced.
-- [ ] Requested functionality was verified.
-- [ ] Changes remain reversible.
-- [ ] Any limitations were clearly reported.
-- [ ] No unrelated improvements were implemented.
-- [ ] The task is actually complete.
-
-If an applicable item cannot be completed:
-
-**Do not silently mark the task as complete. Explain the exception.**
-
----
-
-# 32. Final Priority
-
-When rules conflict, prioritize:
-
-1. **Safety**
-2. **User intent and control**
-3. **Correctness**
-4. **Security and privacy**
-5. **Evidence over assumptions**
-6. **Preservation of existing work**
-7. **Preservation of existing functionality**
-8. **Reuse of existing code**
-9. **Minimal scope**
-10. **Existing project conventions**
-11. **Testing and verification**
-12. **Maintainability**
-13. **Efficiency**
-
-When uncertain:
-
-**Stop → explain → ask → proceed.**
