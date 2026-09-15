@@ -19,6 +19,7 @@ type ListenerRecord = {
 };
 
 type SignalRecord = {
+    signal: AbortSignal;
     listeners: Set<ListenerRecord>;
     abort: EventListener;
 };
@@ -50,36 +51,49 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         callback: Listener | null,
         options?: boolean | AddEventListenerOptions
     ): void {
-        if (!callback) {return;}
+        if (arguments.length < 2) {throw new TypeError('addEventListener requires a type and callback.');}
 
-        const normalized = this.#normalizeOptions(options);
-        if (this.#getRecord(type, callback, normalized.capture)) {return;}
-        if (normalized.signal?.aborted) {return;}
+        const normalizedType = `${type}`;
+        const normalizedCallback = this.#normalizeCallback(callback);
+        const normalized = this.#normalizeAddOptions(options);
+        const dependentSignal = normalized.signal
+            ? this.#prepareSignal(normalized.signal)
+            : undefined;
+
+        if (!normalizedCallback) {return;}
+        if (this.#getRecord(normalizedType, normalizedCallback, normalized.capture)) {return;}
+        if (dependentSignal?.aborted) {return;}
 
         const thisMediator = this;
         const listener: Listener = normalized.once
             ? function(this: EventTarget, event: Event) {
                 thisMediator.#removeRecord(record);
-                if (typeof callback === 'function') {
-                    callback.call(this, event);
+                if (typeof normalizedCallback === 'function') {
+                    normalizedCallback.call(this, event);
                 } else {
-                    const handleEvent = callback.handleEvent;
-                    if (handleEvent) {handleEvent.call(callback, event);}
+                    const handleEvent = normalizedCallback.handleEvent;
+                    if (handleEvent) {handleEvent.call(normalizedCallback, event);}
                 }
             }
-            : callback;
+            : normalizedCallback;
         const record: ListenerRecord = normalized.signal
-            ? {type, callback, listener, capture: normalized.capture, signal: normalized.signal}
-            : {type, callback, listener, capture: normalized.capture};
+            ? {
+                type: normalizedType,
+                callback: normalizedCallback,
+                listener,
+                capture: normalized.capture,
+                signal: normalized.signal
+            }
+            : {type: normalizedType, callback: normalizedCallback, listener, capture: normalized.capture};
 
-        super.addEventListener(type, listener, {
+        super.addEventListener(normalizedType, listener, {
             capture: normalized.capture,
             passive: normalized.passive
         });
         this.#storeRecord(record);
 
-        if (normalized.signal) {
-            this.#trackSignal(normalized.signal, record);
+        if (normalized.signal && dependentSignal) {
+            this.#trackSignal(normalized.signal, dependentSignal, record);
         }
     }
 
@@ -94,16 +108,20 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         callback: Listener | null,
         options?: boolean | EventListenerOptions
     ): void {
-        if (!callback) {return;}
+        if (arguments.length < 2) {throw new TypeError('removeEventListener requires a type and callback.');}
 
-        const capture = typeof options === 'boolean' ? options : Boolean(options?.capture);
-        const record = this.#getRecord(type, callback, capture);
+        const normalizedType = `${type}`;
+        const normalizedCallback = this.#normalizeCallback(callback);
+        const capture = this.#normalizeCapture(options);
+        if (!normalizedCallback) {return;}
+
+        const record = this.#getRecord(normalizedType, normalizedCallback, capture);
         if (record) {
             this.#removeRecord(record);
             return;
         }
 
-        super.removeEventListener(type, callback, options);
+        super.removeEventListener(normalizedType, normalizedCallback, {capture});
     }
 
     /** Remove every listener owned by this mediator and leave it reusable. */
@@ -114,28 +132,45 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         return this;
     }
 
-    #normalizeOptions(options?: boolean | AddEventListenerOptions): ListenerOptions {
-        if (typeof options === 'boolean') {
-            return {capture: options, once: false, passive: false};
+    #normalizeCallback(callback: unknown): Listener | null {
+        if (callback === null || callback === undefined) {return null;}
+        if (typeof callback === 'function' || typeof callback === 'object') {
+            return callback as Listener;
         }
+        throw new TypeError('Event listener must be a function, object, null, or undefined.');
+    }
 
-        if (!options) {
+    #normalizeAddOptions(options?: boolean | AddEventListenerOptions): ListenerOptions {
+        const value: unknown = options;
+        if (value === undefined || value === null) {
             return {capture: false, once: false, passive: false};
         }
 
-        const capture = Boolean(options.capture);
-        const once = Boolean(options.once);
-        const passive = Boolean(options.passive);
-        const signal = options.signal;
-
-        if (signal === undefined) {
-            return {capture, once, passive};
+        if (typeof value !== 'object' && typeof value !== 'function') {
+            return {capture: Boolean(value), once: false, passive: false};
         }
 
-        // AbortSignal.any performs platform brand validation without wiring every
-        // listener through Node's signal-backed EventTarget registration path.
-        AbortSignal.any([signal]);
-        return {capture, once, passive, signal};
+        const dictionary = value as AddEventListenerOptions;
+        const capture = Boolean(dictionary.capture);
+        const once = Boolean(dictionary.once);
+        const passive = Boolean(dictionary.passive);
+        const signal = dictionary.signal;
+
+        return signal === undefined
+            ? {capture, once, passive}
+            : {capture, once, passive, signal};
+    }
+
+    #normalizeCapture(options?: boolean | EventListenerOptions): boolean {
+        const value: unknown = options;
+        if (value === undefined || value === null) {return false;}
+        if (typeof value !== 'object' && typeof value !== 'function') {return Boolean(value);}
+        return Boolean((value as EventListenerOptions).capture);
+    }
+
+    #prepareSignal(signal: AbortSignal): AbortSignal {
+        const current = this.#signals.get(signal);
+        return current?.signal ?? AbortSignal.any([signal]);
     }
 
     #getRecord(type: string, callback: Listener, capture: boolean) {
@@ -176,24 +211,24 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
             const signalRecord = this.#signals.get(record.signal)!;
             signalRecord.listeners.delete(record);
             if (signalRecord.listeners.size === 0) {
-                record.signal.removeEventListener('abort', signalRecord.abort);
+                signalRecord.signal.removeEventListener('abort', signalRecord.abort);
                 this.#signals.delete(record.signal);
             }
         }
     }
 
-    #trackSignal(signal: AbortSignal, record: ListenerRecord) {
+    #trackSignal(signal: AbortSignal, dependentSignal: AbortSignal, record: ListenerRecord) {
         let signalRecord = this.#signals.get(signal);
         if (!signalRecord) {
+            const listeners = new Set<ListenerRecord>();
             const abort: EventListener = () => {
-                const current = this.#signals.get(signal)!;
-                for (const listenerRecord of [...current.listeners]) {
+                for (const listenerRecord of [...listeners]) {
                     this.#removeRecord(listenerRecord);
                 }
             };
-            signalRecord = {listeners: new Set(), abort};
+            signalRecord = {signal: dependentSignal, listeners, abort};
             this.#signals.set(signal, signalRecord);
-            signal.addEventListener('abort', abort, {once: true});
+            dependentSignal.addEventListener('abort', abort, {once: true});
         }
         signalRecord.listeners.add(record);
     }
