@@ -62,6 +62,44 @@ function benchmarkLifecycle(Target, iterations) {
     });
 }
 
+function benchmarkSharedSignal(Target, listenerCount) {
+    return measure(() => {
+        const target = new Target();
+        const controller = new AbortController();
+        setMaxListeners(0, target, controller.signal);
+        for (let index = 0; index < listenerCount; index += 1) {
+            target.addEventListener(`event:${index}`, () => {}, {signal: controller.signal});
+        }
+        controller.abort();
+    });
+}
+
+function benchmarkDuplicateSignal(Target, iterations) {
+    const target = new Target();
+    const controller = new AbortController();
+    const callback = () => {};
+    setMaxListeners(0, target, controller.signal);
+    target.addEventListener('event', callback);
+    return measure(() => {
+        for (let index = 0; index < iterations; index += 1) {
+            target.addEventListener('event', callback, {signal: controller.signal});
+        }
+    });
+}
+
+function benchmarkPreAbortedSignal(Target, iterations) {
+    const target = new Target();
+    const controller = new AbortController();
+    const callback = () => {};
+    controller.abort();
+    setMaxListeners(0, target, controller.signal);
+    return measure(() => {
+        for (let index = 0; index < iterations; index += 1) {
+            target.addEventListener('event', callback, {signal: controller.signal});
+        }
+    });
+}
+
 const cases = [
     {listeners: 1, iterations: 500_000},
     {listeners: 10, iterations: 100_000},
@@ -84,6 +122,24 @@ console.table([{
     eventTargetMs: benchmarkLifecycle(EventTarget, 100_000).toFixed(2),
     mediatorMs: benchmarkLifecycle(Mediator, 100_000).toFixed(2)
 }]);
+console.table([100, 1_000, 10_000].map(listeners => ({
+    operation: 'shared signal add + abort',
+    listeners,
+    eventTargetMs: benchmarkSharedSignal(EventTarget, listeners).toFixed(2),
+    mediatorMs: benchmarkSharedSignal(Mediator, listeners).toFixed(2)
+})));
+console.table([{
+    operation: 'duplicate add with signal',
+    iterations: 100_000,
+    eventTargetMs: benchmarkDuplicateSignal(EventTarget, 100_000).toFixed(2),
+    mediatorMs: benchmarkDuplicateSignal(Mediator, 100_000).toFixed(2)
+}, {
+    operation: 'pre-aborted signal add',
+    iterations: 100_000,
+    eventTargetMs: benchmarkPreAbortedSignal(EventTarget, 100_000).toFixed(2),
+    mediatorMs: benchmarkPreAbortedSignal(Mediator, 100_000).toFixed(2)
+}]);
 console.log('Medians of seven rounds. EventEmitter approximates the v4 Node runtime path.');
 console.log('Publish columns include CustomEvent allocation; reused dispatch isolates dispatch cost.');
+console.log('Signal cases include registration and, where applicable, abort-driven cleanup.');
 console.log('Benchmarks are diagnostic only and do not enforce CI thresholds.');
