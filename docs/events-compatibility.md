@@ -60,11 +60,11 @@ Listener exceptions also follow EventTarget semantics. In particular, callers sh
 
 ## Lifecycle cleanup
 
-Mediator records each native EventTarget registration by event type, original callback, and capture mode. `destroy()` removes those owned registrations explicitly and leaves the mediator reusable.
+Mediator records each native EventTarget registration by the event type's DOM string value, original callback, and capture mode. `destroy()` removes those owned registrations explicitly and leaves the mediator reusable.
 
 One-time registrations are removed from both EventTarget and the ownership registry before their callback is invoked, preserving re-entrant `once` behavior. Explicit `removeEventListener()` calls update the same registry.
 
-Caller-provided AbortSignals remain supported, but Mediator does not pass a shared lifecycle signal through every EventTarget registration. Registrations sharing one caller signal are grouped behind one abort handler, and abort removes the corresponding native listeners and ownership records.
+Caller-provided AbortSignals remain supported, but Mediator does not pass a shared lifecycle signal through every EventTarget registration. Registrations sharing one caller signal are grouped behind one private dependent signal created with `AbortSignal.any()`. Cleanup therefore follows actual signal abort state rather than ordinary, interceptable `'abort'` event delivery: application listeners cannot block cleanup with `stopImmediatePropagation()`, and manually dispatching an `'abort'` event does not cancel registrations.
 
 This design avoids relying on Node's signal-backed EventTarget listener-retention path for mediator lifecycle cleanup. Regression coverage runs a child process with `--expose-gc` so cleanup remains verified even after forced garbage collection.
 
