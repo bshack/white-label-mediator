@@ -56,9 +56,9 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         const normalizedType = `${type}`;
         const normalizedCallback = this.#normalizeCallback(callback);
         const normalized = this.#normalizeAddOptions(options);
-        const dependentSignal = normalized.signal
-            ? this.#prepareSignal(normalized.signal)
-            : undefined;
+        const dependentSignal = normalized.signal === undefined
+            ? undefined
+            : this.#prepareSignal(normalized.signal);
 
         if (!normalizedCallback) {return;}
         if (this.#getRecord(normalizedType, normalizedCallback, normalized.capture)) {return;}
@@ -76,15 +76,15 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
                 }
             }
             : normalizedCallback;
-        const record: ListenerRecord = normalized.signal
-            ? {
+        const record: ListenerRecord = normalized.signal === undefined
+            ? {type: normalizedType, callback: normalizedCallback, listener, capture: normalized.capture}
+            : {
                 type: normalizedType,
                 callback: normalizedCallback,
                 listener,
                 capture: normalized.capture,
                 signal: normalized.signal
-            }
-            : {type: normalizedType, callback: normalizedCallback, listener, capture: normalized.capture};
+            };
 
         super.addEventListener(normalizedType, listener, {
             capture: normalized.capture,
@@ -92,7 +92,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         });
         this.#storeRecord(record);
 
-        if (normalized.signal && dependentSignal) {
+        if (normalized.signal !== undefined && dependentSignal) {
             this.#trackSignal(normalized.signal, dependentSignal, record);
         }
     }
