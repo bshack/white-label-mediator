@@ -24,6 +24,8 @@ type SignalRecord = {
     abort: EventListener;
 };
 
+const abortSignalAborted = Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted')!.get!;
+
 /**
  * Standards-based synchronous application event bus.
  *
@@ -56,23 +58,27 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         const normalizedType = typeof type === 'string' ? type : `${type}`;
         const normalizedCallback = this.#normalizeCallback(callback);
         const normalized = this.#normalizeAddOptions(options);
-        const dependentSignal = normalized.signal === undefined
-            ? undefined
-            : this.#prepareSignal(normalized.signal);
+        const signalAborted = normalized.signal === undefined
+            ? false
+            : Boolean(Reflect.apply(abortSignalAborted, normalized.signal, []));
 
         if (!normalizedCallback) {return;}
         if (this.#getRecord(normalizedType, normalizedCallback, normalized.capture)) {return;}
-        if (dependentSignal?.aborted) {return;}
+        if (signalAborted) {return;}
 
+        const dependentSignal = normalized.signal === undefined
+            ? undefined
+            : this.#prepareSignal(normalized.signal);
         const thisMediator = this;
-        const listener: Listener = normalized.once
+        const needsWrapper = normalized.once || typeof normalizedCallback !== 'function';
+        const listener: Listener = needsWrapper
             ? function(this: EventTarget, event: Event) {
-                thisMediator.#removeRecord(record);
+                if (normalized.once) {thisMediator.#removeRecord(record);}
                 if (typeof normalizedCallback === 'function') {
                     normalizedCallback.call(this, event);
                 } else {
                     const handleEvent = normalizedCallback.handleEvent;
-                    if (handleEvent) {handleEvent.call(normalizedCallback, event);}
+                    handleEvent.call(normalizedCallback, event);
                 }
             }
             : normalizedCallback;
@@ -86,6 +92,9 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
                 signal: normalized.signal
             };
 
+        // Listener objects are wrapped so Node never touches handleEvent during
+        // registration. That keeps Web IDL callback lookup at dispatch time and
+        // prevents user getters from mutating signal state mid-registration.
         super.addEventListener(normalizedType, listener, {
             capture: normalized.capture,
             passive: normalized.passive
