@@ -92,6 +92,21 @@ describe('Mediator', () => {
         assert.equal(second.mock.callCount(), 0);
     });
 
+    it('keeps a shared signal active while another registration still owns it', () => {
+        const mediator = new Mediator();
+        const controller = new AbortController();
+        const first = mock.fn();
+        const second = mock.fn();
+        mediator.addEventListener('first', first, {signal: controller.signal});
+        mediator.addEventListener('second', second, {signal: controller.signal});
+        mediator.removeEventListener('first', first);
+        controller.abort();
+        mediator.dispatchEvent(new CustomEvent('first'));
+        mediator.dispatchEvent(new CustomEvent('second'));
+        assert.equal(first.mock.callCount(), 0);
+        assert.equal(second.mock.callCount(), 0);
+    });
+
     it('honors inherited abort signals', () => {
         const mediator = new Mediator();
         const controller = new AbortController();
@@ -101,6 +116,17 @@ describe('Mediator', () => {
         controller.abort();
         mediator.dispatchEvent(new CustomEvent('ready'));
         assert.equal(callback.mock.callCount(), 0);
+    });
+
+    it('ignores pre-aborted signals and rejects invalid signals', () => {
+        const mediator = new Mediator();
+        const controller = new AbortController();
+        const callback = mock.fn();
+        controller.abort();
+        mediator.addEventListener('ready', callback, {signal: controller.signal});
+        mediator.dispatchEvent(new CustomEvent('ready'));
+        assert.equal(callback.mock.callCount(), 0);
+        assert.throws(() => mediator.addEventListener('invalid', callback, {signal: {}}), TypeError);
     });
 
     it('ignores a duplicate registration signal just like native EventTarget', () => {
@@ -150,8 +176,18 @@ describe('Mediator', () => {
         const callback = mock.fn();
         mediator.addEventListener('ready', callback, false);
         mediator.addEventListener('ready', null);
+        mediator.removeEventListener('ready', null);
         mediator.dispatchEvent(new CustomEvent('ready'));
         assert.equal(callback.mock.callCount(), 1);
+    });
+
+    it('delegates removal for listeners registered directly on EventTarget', () => {
+        const mediator = new Mediator();
+        const callback = mock.fn();
+        EventTarget.prototype.addEventListener.call(mediator, 'native', callback);
+        mediator.removeEventListener('native', callback);
+        mediator.dispatchEvent(new CustomEvent('native'));
+        assert.equal(callback.mock.callCount(), 0);
     });
 
     it('removes lifecycle-scoped listeners on destroy and can be reused', () => {
