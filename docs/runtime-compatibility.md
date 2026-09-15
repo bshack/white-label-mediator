@@ -16,6 +16,8 @@ mediator.dispatchEvent(new CustomEvent('request:complete', {
 }));
 ```
 
+Mediator owns lifecycle cleanup by explicitly tracking its native EventTarget registrations. It does not attach one shared lifecycle AbortSignal to every listener. Caller-provided AbortSignals are still supported and are tracked separately from mediator-wide `destroy()` cleanup.
+
 For request-specific server events, scope a mediator to the request or another intentional lifetime. A singleton mediator is appropriate only for events that are intentionally application-wide; otherwise listeners and request data can cross request boundaries.
 
-The regression suite explicitly executes the mediator with no `window` or `document` globals and verifies synchronous delivery, `once`, AbortSignal behavior, teardown, and isolation between separately scoped mediator instances.
+The regression suite explicitly executes the mediator with no `window` or `document` globals and verifies synchronous delivery, `once`, caller AbortSignal behavior, forced-GC teardown, and isolation between separately scoped mediator instances.
