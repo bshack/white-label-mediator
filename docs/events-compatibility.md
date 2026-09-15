@@ -64,7 +64,7 @@ Listener exceptions also follow EventTarget semantics. In particular, callers sh
 
 Mediator normalizes the portions of the web EventTarget contract that have observable differences across supported runtimes.
 
-Event names are converted to their DOM string value before ownership bookkeeping. Listener objects are registered through a thin function wrapper so `handleEvent` is looked up when the event is delivered rather than during Node registration. This avoids registration-time user-code execution from a getter and matches the callback-interface model used by browsers.
+Event names are converted to their DOM string value before ownership bookkeeping. Symbol event types are rejected rather than retained as EventEmitter-style symbol channels. Listener objects are registered through a thin function wrapper so `handleEvent` is looked up when the event is delivered rather than during Node registration. This avoids registration-time user-code execution from a getter and matches the callback-interface model used by browsers.
 
 The DOM dispatch algorithm works from a clone of the listener list. Supported Node versions walk a live listener list, so a listener added while an event is already being delivered can otherwise run later in that same dispatch. Mediator tracks nested dispatches and suppresses only listeners that Node reaches in the same dispatch in which they were added. A nested dispatch gets its own snapshot boundary and can observe the new registration.
 
