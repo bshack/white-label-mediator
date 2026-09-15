@@ -140,6 +140,21 @@ describe('Mediator EventTarget edge cases', () => {
         assert.equal(callback.mock.callCount(), 0);
     });
 
+    it('does not treat a synthetic abort event as an actual signal abort', () => {
+        const mediator = new Mediator();
+        const controller = new AbortController();
+        const callback = mock.fn();
+
+        mediator.addEventListener('ready', callback, {signal: controller.signal});
+        controller.signal.dispatchEvent(new Event('abort'));
+        mediator.dispatchEvent(new Event('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+
+        controller.abort();
+        mediator.dispatchEvent(new Event('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+    });
+
     it('reuses one dependent signal for registrations sharing a caller signal', () => {
         const mediator = new Mediator();
         const controller = new AbortController();
