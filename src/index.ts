@@ -54,7 +54,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
 
         const normalized = this.#normalizeOptions(options);
         if (this.#getRecord(type, callback, normalized.capture)) {return;}
-        if (normalized.signal && AbortSignal.any([normalized.signal]).aborted) {return;}
+        if (normalized.signal?.aborted) {return;}
 
         const thisMediator = this;
         const listener: Listener = normalized.once
