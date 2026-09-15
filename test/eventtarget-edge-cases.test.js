@@ -127,6 +127,51 @@ describe('Mediator EventTarget edge cases', () => {
         assert.throws(() => mediator.addEventListener('ready', null, {signal: {}}), TypeError);
     });
 
+    it('validates a duplicate registration signal without allocating ownership for it', () => {
+        const mediator = new Mediator();
+        const callback = mock.fn();
+        mediator.addEventListener('ready', callback);
+        assert.throws(() => mediator.addEventListener('ready', callback, {signal: {}}), TypeError);
+        mediator.dispatchEvent(new Event('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+    });
+
+    it('does not read listener-object handleEvent during registration', () => {
+        const mediator = new Mediator();
+        const listener = {};
+        const callback = mock.fn();
+
+        mediator.addEventListener('ready', listener);
+        listener.handleEvent = callback;
+        mediator.dispatchEvent(new Event('ready'));
+
+        assert.equal(callback.mock.callCount(), 1);
+    });
+
+    it('keeps signal cleanup correct when a handleEvent getter aborts during dispatch', () => {
+        const mediator = new Mediator();
+        const controller = new AbortController();
+        const calls = [];
+        let reads = 0;
+        const listener = {
+            get handleEvent() {
+                reads += 1;
+                controller.abort();
+                return () => calls.push('called');
+            }
+        };
+
+        mediator.addEventListener('ready', listener, {signal: controller.signal});
+        assert.equal(reads, 0);
+        assert.equal(controller.signal.aborted, false);
+
+        mediator.dispatchEvent(new Event('ready'));
+        mediator.dispatchEvent(new Event('ready'));
+
+        assert.equal(reads, 1);
+        assert.deepEqual(calls, ['called']);
+    });
+
     it('cannot have caller abort cleanup blocked by stopImmediatePropagation', () => {
         const mediator = new Mediator();
         const controller = new AbortController();
