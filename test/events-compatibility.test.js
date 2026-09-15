@@ -1,21 +1,29 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const {it} = require('node:test');
-const {backends, loadPackage} = require('./helpers/events-backend');
-const eventsContract = require('./helpers/events-contract');
+const {test, mock} = require('node:test');
+const Mediator = require('../dist');
 
-for (const [name, Backend] of backends) {
-    const Mediator = loadPackage(Backend);
-    eventsContract(`Mediator / ${name}`, () => new Mediator(), Backend);
+test('Mediator exposes EventTarget rather than EventEmitter compatibility aliases', () => {
+    const mediator = new Mediator();
+    assert.ok(mediator instanceof EventTarget);
+    assert.equal(typeof mediator.addEventListener, 'function');
+    assert.equal(typeof mediator.removeEventListener, 'function');
+    assert.equal(typeof mediator.dispatchEvent, 'function');
+    assert.equal(mediator.on, undefined);
+    assert.equal(mediator.emit, undefined);
+    assert.equal(mediator.removeAllListeners, undefined);
+});
 
-    it(`Mediator / ${name}: lifecycle chaining releases all named and symbol listeners`, () => {
-        const mediator = new Mediator();
-        assert.equal(mediator.initialize(), mediator);
-        mediator.on('data', () => {});
-        mediator.once(Symbol('ready'), () => {});
-        assert.equal(mediator.destroy(), mediator);
-        assert.deepEqual(mediator.eventNames(), []);
-        assert.equal(mediator.emit('data'), false);
-    });
-}
+test('native once, duplicate registration, and cancellation semantics are preserved', () => {
+    const mediator = new Mediator();
+    const callback = mock.fn();
+    mediator.addEventListener('event', callback, {once: true});
+    mediator.addEventListener('event', callback, {once: true});
+    mediator.dispatchEvent(new CustomEvent('event'));
+    mediator.dispatchEvent(new CustomEvent('event'));
+    assert.equal(callback.mock.callCount(), 1);
+
+    mediator.addEventListener('cancel', event => event.preventDefault());
+    assert.equal(mediator.dispatchEvent(new CustomEvent('cancel', {cancelable: true})), false);
+});

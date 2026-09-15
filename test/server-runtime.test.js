@@ -14,19 +14,20 @@ function withoutBrowserGlobals(t) {
     });
 }
 
-test('mediator preserves its EventEmitter contract in plain Node without browser globals', t => {
+test('mediator uses the web-standard event contract in plain Node without browser globals', t => {
     withoutBrowserGlobals(t);
     const mediator = new Mediator();
     const calls = [];
-    mediator.on('request:state', value => calls.push(['on', value]));
-    mediator.once('request:state', value => calls.push(['once', value]));
+    mediator.addEventListener('request:state', event => calls.push(['on', event.detail]));
+    mediator.addEventListener('request:state', event => calls.push(['once', event.detail]), {once: true});
 
     assert.equal(mediator.initialize(), mediator);
-    assert.equal(mediator.emit('request:state', 1), true);
-    assert.equal(mediator.emit('request:state', 2), true);
+    assert.equal(mediator.dispatchEvent(new CustomEvent('request:state', {detail: 1})), true);
+    assert.equal(mediator.dispatchEvent(new CustomEvent('request:state', {detail: 2})), true);
     assert.deepEqual(calls, [['on', 1], ['once', 1], ['on', 2]]);
     assert.equal(mediator.destroy(), mediator);
-    assert.equal(mediator.listenerCount('request:state'), 0);
+    mediator.dispatchEvent(new CustomEvent('request:state', {detail: 3}));
+    assert.equal(calls.length, 3);
 });
 
 test('separately scoped server mediators do not leak listeners or events across requests', t => {
@@ -34,10 +35,9 @@ test('separately scoped server mediators do not leak listeners or events across 
     const first = new Mediator();
     const second = new Mediator();
     const received = [];
-    first.on('complete', value => received.push(['first', value]));
-    second.on('complete', value => received.push(['second', value]));
+    first.addEventListener('complete', event => received.push(['first', event.detail]));
+    second.addEventListener('complete', event => received.push(['second', event.detail]));
 
-    first.emit('complete', 1);
+    first.dispatchEvent(new CustomEvent('complete', {detail: 1}));
     assert.deepEqual(received, [['first', 1]]);
-    assert.equal(second.listenerCount('complete'), 1);
 });

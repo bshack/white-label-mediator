@@ -16,7 +16,7 @@ Describe the desired behavior without prescribing unnecessary implementation det
 
 ## Fit with package scope
 
-Explain how this belongs within a small EventEmitter-compatible application event bus.
+Explain how this belongs within a small standards-based EventTarget application event bus.
 
 ## Alternatives and constraints
 
