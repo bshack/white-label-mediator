@@ -42,7 +42,7 @@ describe('Mediator', () => {
         const callback = mock.fn();
         mediator.addEventListener('ready', callback, true);
         mediator.addEventListener('ready', callback, false);
-        mediator.removeEventListener('ready', callback, true);
+        mediator.removeEventListener('ready', callback, {capture: true});
         mediator.dispatchEvent(new CustomEvent('ready'));
         assert.equal(callback.mock.callCount(), 1);
         mediator.removeEventListener('ready', callback, false);
