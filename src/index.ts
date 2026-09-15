@@ -36,6 +36,8 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
     #listeners = new Set<ListenerRecord>();
     #registrations = new Map<string, Map<Listener, Map<boolean, ListenerRecord>>>();
     #signals = new Map<AbortSignal, SignalRecord>();
+    #dispatchToken = 0;
+    #nextDispatchToken = 0;
 
     /** Start this instance and return it for lifecycle chaining. */
     initialize() {
@@ -70,9 +72,17 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
             ? undefined
             : this.#prepareSignal(normalized.signal);
         const thisMediator = this;
-        const needsWrapper = normalized.once || typeof normalizedCallback !== 'function';
+        const registrationToken = this.#dispatchToken;
+        const needsWrapper = normalized.once
+            || typeof normalizedCallback !== 'function'
+            || registrationToken !== 0;
         const listener: Listener = needsWrapper
             ? function(this: EventTarget, event: Event) {
+                // DOM dispatch invokes a clone of the listener list. Node walks a
+                // live list, so suppress a registration if Node reaches it later
+                // in the same dispatch in which it was added. Nested dispatches
+                // get a different token and can observe the new registration.
+                if (registrationToken !== 0 && thisMediator.#dispatchToken === registrationToken) {return;}
                 if (normalized.once) {thisMediator.#removeRecord(record);}
                 if (typeof normalizedCallback === 'function') {
                     normalizedCallback.call(this, event);
@@ -131,6 +141,17 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         }
 
         super.removeEventListener(normalizedType, normalizedCallback, {capture});
+    }
+
+    /** Dispatch with DOM-style listener snapshot semantics across supported runtimes. */
+    override dispatchEvent(event: Event): boolean {
+        const previousToken = this.#dispatchToken;
+        this.#dispatchToken = ++this.#nextDispatchToken;
+        try {
+            return super.dispatchEvent(event);
+        } finally {
+            this.#dispatchToken = previousToken;
+        }
     }
 
     /** Remove every listener owned by this mediator and leave it reusable. */
