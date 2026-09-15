@@ -50,10 +50,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         callback: Listener | null,
         options?: boolean | AddEventListenerOptions
     ): void {
-        if (!callback) {
-            super.addEventListener(type, callback, options);
-            return;
-        }
+        if (!callback) {return;}
 
         const normalized = this.#normalizeOptions(options);
         if (this.#getRecord(type, callback, normalized.capture)) {return;}
@@ -96,10 +93,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         callback: Listener | null,
         options?: boolean | EventListenerOptions
     ): void {
-        if (!callback) {
-            super.removeEventListener(type, callback, options);
-            return;
-        }
+        if (!callback) {return;}
 
         const capture = typeof options === 'boolean' ? options : Boolean(options?.capture);
         const record = this.#getRecord(type, callback, capture);
@@ -167,7 +161,9 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
     #removeRecord(record: ListenerRecord) {
         if (!this.#listeners.delete(record)) {return;}
 
-        super.removeEventListener(record.type, record.listener, record.capture);
+        // Use the object form consistently; supported Node versions have differed
+        // in boolean-capture removal behavior when both capture modes are present.
+        super.removeEventListener(record.type, record.listener, {capture: record.capture});
 
         const callbacks = this.#registrations.get(record.type);
         const captures = callbacks?.get(record.callback);
