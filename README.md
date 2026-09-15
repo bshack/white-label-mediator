@@ -2,7 +2,7 @@
 
 > Application events without application coupling.
 
-`white-label-mediator` is a lightweight TypeScript and JavaScript event bus for loosely coupled browser and Node.js applications. Version 5 is built directly on the web-standard `EventTarget`, `CustomEvent`, and `AbortSignal` APIs and has no runtime dependencies.
+`white-label-mediator` is a lightweight TypeScript and JavaScript event bus for loosely coupled browser and Node.js applications. It is built directly on the web-standard `EventTarget`, `CustomEvent`, and `AbortSignal` APIs and has no runtime dependencies.
 
 [Documentation](https://whitelabeljs.org/docs/mediator/) · [API reference](https://whitelabeljs.org/api/#mediator) · [Demo site](https://whitelabeljs.org/)
 
@@ -186,19 +186,9 @@ Do not rely on a module-level Mediator for request isolation merely because the 
 
 Mediator is an in-memory event bus. It does **not** replace SQS, SNS, EventBridge, Kafka, Pub/Sub, durable queues, retries, or communication between separate function instances.
 
-## Migrating from v4
+## Event contract
 
-Version 5 intentionally drops the Node `EventEmitter` compatibility API. The direct equivalents are:
-
-| v4 | v5 |
-| --- | --- |
-| `on(name, listener)` | `addEventListener(name, listener)` |
-| `once(name, listener)` | `addEventListener(name, listener, {once: true})` |
-| `emit(name, payload)` | `dispatchEvent(new CustomEvent(name, {detail: payload}))` |
-| `removeListener(name, listener)` | `removeEventListener(name, listener)` |
-| `removeAllListeners()` | `destroy()` for mediator-owned lifecycle cleanup |
-
-EventTarget deliberately differs from EventEmitter in duplicate registration, symbol event names, cancellation/return semantics, error events, listener inspection, prepend methods, and meta-events. Listener exceptions are reported using native EventTarget behavior rather than being rethrown from `dispatchEvent()` the way EventEmitter listener exceptions propagate from `emit()`. See [`docs/events-compatibility.md`](docs/events-compatibility.md).
+Mediator follows standard `EventTarget` listener registration, removal, cancellation, and `CustomEvent.detail` payload semantics. It tracks its owned registrations so `destroy()` can clean them up deterministically while leaving the instance reusable. See [`docs/events-compatibility.md`](docs/events-compatibility.md) for the detailed current contract and runtime-normalization notes.
 
 ## TypeScript
 
