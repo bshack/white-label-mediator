@@ -159,22 +159,22 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
     }
 
     #removeRecord(record: ListenerRecord) {
-        if (!this.#listeners.delete(record)) {return;}
+        this.#listeners.delete(record);
 
         // Use the object form consistently; supported Node versions have differed
         // in boolean-capture removal behavior when both capture modes are present.
         super.removeEventListener(record.type, record.listener, {capture: record.capture});
 
-        const callbacks = this.#registrations.get(record.type);
-        const captures = callbacks?.get(record.callback);
-        captures?.delete(record.capture);
-        if (captures?.size === 0) {callbacks?.delete(record.callback);}
-        if (callbacks?.size === 0) {this.#registrations.delete(record.type);}
+        const callbacks = this.#registrations.get(record.type)!;
+        const captures = callbacks.get(record.callback)!;
+        captures.delete(record.capture);
+        if (captures.size === 0) {callbacks.delete(record.callback);}
+        if (callbacks.size === 0) {this.#registrations.delete(record.type);}
 
         if (record.signal) {
-            const signalRecord = this.#signals.get(record.signal);
-            signalRecord?.listeners.delete(record);
-            if (signalRecord?.listeners.size === 0) {
+            const signalRecord = this.#signals.get(record.signal)!;
+            signalRecord.listeners.delete(record);
+            if (signalRecord.listeners.size === 0) {
                 record.signal.removeEventListener('abort', signalRecord.abort);
                 this.#signals.delete(record.signal);
             }
@@ -185,8 +185,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         let signalRecord = this.#signals.get(signal);
         if (!signalRecord) {
             const abort: EventListener = () => {
-                const current = this.#signals.get(signal);
-                if (!current) {return;}
+                const current = this.#signals.get(signal)!;
                 for (const listenerRecord of [...current.listeners]) {
                     this.#removeRecord(listenerRecord);
                 }
