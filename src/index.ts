@@ -53,7 +53,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
     ): void {
         if (arguments.length < 2) {throw new TypeError('addEventListener requires a type and callback.');}
 
-        const normalizedType = `${type}`;
+        const normalizedType = typeof type === 'string' ? type : `${type}`;
         const normalizedCallback = this.#normalizeCallback(callback);
         const normalized = this.#normalizeAddOptions(options);
         const dependentSignal = normalized.signal === undefined
@@ -110,7 +110,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
     ): void {
         if (arguments.length < 2) {throw new TypeError('removeEventListener requires a type and callback.');}
 
-        const normalizedType = `${type}`;
+        const normalizedType = typeof type === 'string' ? type : `${type}`;
         const normalizedCallback = this.#normalizeCallback(callback);
         const capture = this.#normalizeCapture(options);
         if (!normalizedCallback) {return;}
