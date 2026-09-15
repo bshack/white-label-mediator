@@ -63,7 +63,8 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
                 if (typeof callback === 'function') {
                     callback.call(this, event);
                 } else {
-                    callback.handleEvent(event);
+                    const handleEvent = callback.handleEvent;
+                    if (handleEvent) {handleEvent.call(callback, event);}
                 }
             }
             : callback;
