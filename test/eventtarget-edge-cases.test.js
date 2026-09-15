@@ -172,6 +172,40 @@ describe('Mediator EventTarget edge cases', () => {
         assert.deepEqual(calls, ['called']);
     });
 
+    it('does not invoke listeners added during the current dispatch', () => {
+        const mediator = new Mediator();
+        const calls = [];
+        const added = () => calls.push('added');
+
+        mediator.addEventListener('ready', () => {
+            calls.push('first');
+            mediator.addEventListener('ready', added);
+        });
+        mediator.addEventListener('ready', () => calls.push('later'));
+
+        mediator.dispatchEvent(new Event('ready'));
+        assert.deepEqual(calls, ['first', 'later']);
+
+        mediator.dispatchEvent(new Event('ready'));
+        assert.deepEqual(calls, ['first', 'later', 'first', 'later', 'added']);
+    });
+
+    it('allows a listener added during dispatch to participate in a nested dispatch', () => {
+        const mediator = new Mediator();
+        const calls = [];
+        const nested = () => calls.push('nested');
+
+        mediator.addEventListener('ready', () => {
+            calls.push('first');
+            mediator.addEventListener('ready', nested);
+            mediator.dispatchEvent(new Event('ready'));
+        }, {once: true});
+        mediator.addEventListener('ready', () => calls.push('later'));
+
+        mediator.dispatchEvent(new Event('ready'));
+        assert.deepEqual(calls, ['first', 'later', 'nested', 'later']);
+    });
+
     it('cannot have caller abort cleanup blocked by stopImmediatePropagation', () => {
         const mediator = new Mediator();
         const controller = new AbortController();
