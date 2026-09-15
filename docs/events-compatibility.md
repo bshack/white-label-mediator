@@ -1,10 +1,8 @@
-# EventTarget contract and EventEmitter migration
+# EventTarget contract
 
 ## Runtime model
 
-White Label Mediator v5 extends the platform `EventTarget` class directly. Payload-bearing application messages use `CustomEvent` and place data in `event.detail`. Mediator explicitly tracks the native listener registrations it owns so lifecycle cleanup does not depend on a shared internal `AbortSignal`.
-
-There is no runtime event-emitter dependency in v5.
+White Label Mediator extends the platform `EventTarget` class directly. Payload-bearing application messages use `CustomEvent` and place data in `event.detail`. Mediator explicitly tracks the native listener registrations it owns so lifecycle cleanup does not depend on a shared internal `AbortSignal`.
 
 ## Contract under test
 
@@ -25,37 +23,6 @@ The regression suite protects the behavior White Label depends on:
 - native `dispatchEvent()` cancellation return semantics; and
 - the same contract in supported Node runtimes without `window` or `document`.
 
-## Intentional v4 breaking changes
-
-Version 4 exposed Node EventEmitter semantics through the `events` package. Version 5 removes that compatibility layer instead of reimplementing Node behavior on top of EventTarget.
-
-Applications should migrate as follows:
-
-```js
-// v4
-mediator.on('profile:loaded', profile => render(profile));
-mediator.emit('profile:loaded', profile);
-
-// v5
-mediator.addEventListener('profile:loaded', event => render(event.detail));
-mediator.dispatchEvent(new CustomEvent('profile:loaded', {detail: profile}));
-```
-
-The following EventEmitter-specific behaviors are intentionally not reproduced:
-
-- symbol event names;
-- `addListener`, `on`, `once`, `emit`, `off`, and `removeListener` aliases;
-- `prependListener` and `prependOnceListener`;
-- `eventNames`, `listeners`, `rawListeners`, and `listenerCount` inspection;
-- `newListener` and `removeListener` meta-events;
-- EventEmitter maximum-listener APIs;
-- special unhandled `error` event throwing; and
-- EventEmitter duplicate-registration/removal rules.
-
-Use ordinary JavaScript exceptions for errors rather than relying on EventEmitter's special `error` event behavior.
-
-Listener exceptions also follow EventTarget semantics. In particular, callers should not depend on a listener exception being rethrown directly from `dispatchEvent()` the way EventEmitter listener exceptions propagate from `emit()`.
-
 ## dispatchEvent return value
 
 `EventTarget.dispatchEvent()` returns `false` when a cancelable event was canceled with `preventDefault()` and `true` otherwise. It does not indicate whether listeners were registered.
@@ -64,7 +31,7 @@ Listener exceptions also follow EventTarget semantics. In particular, callers sh
 
 Mediator normalizes the portions of the web EventTarget contract that have observable differences across supported runtimes.
 
-Event names are converted to their DOM string value before ownership bookkeeping. Symbol event types are rejected rather than retained as EventEmitter-style symbol channels. Listener objects are registered through a thin function wrapper so `handleEvent` is looked up when the event is delivered rather than during Node registration. This avoids registration-time user-code execution from a getter and matches the callback-interface model used by browsers.
+Event names are converted to their DOM string value before ownership bookkeeping. Symbol event types are rejected. Listener objects are registered through a thin function wrapper so `handleEvent` is looked up when the event is delivered rather than during Node registration. This avoids registration-time user-code execution from a getter and matches the callback-interface model used by browsers.
 
 The DOM dispatch algorithm works from a clone of the listener list. Supported Node versions walk a live listener list, so a listener added while an event is already being delivered can otherwise run later in that same dispatch. Mediator tracks nested dispatches and suppresses only listeners that Node reaches in the same dispatch in which they were added. A nested dispatch gets its own snapshot boundary and can observe the new registration.
 
@@ -86,4 +53,4 @@ Mediator also uses the object form of `{capture}` for owned removals. Supported 
 
 ## Browser verification
 
-`test/browser-smoke.js` can be bundled for a browser-aware build and exercises `CustomEvent`, `once`, caller AbortSignal cleanup, and `destroy()` without an EventEmitter polyfill.
+`test/browser-smoke.js` can be bundled for a browser-aware build and exercises `CustomEvent`, `once`, caller AbortSignal cleanup, and `destroy()` directly against the current EventTarget contract.
