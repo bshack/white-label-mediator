@@ -2,9 +2,9 @@
 
 # Repository Guide — white-label-mediator
 
-EventEmitter-compatible application event bus with optional typed event maps.
+Standards-based EventTarget application event bus with optional typed listener event maps.
 
-Verified against `package.json`, `README.md`, and `.github/workflows/security.yml` on September 13, 2026. Recheck those files when commands or supported environments change.
+Verified against `package.json`, `README.md`, and `.github/workflows/security.yml` on September 15, 2026. Recheck those files when commands or supported environments change.
 
 ## Code map
 
@@ -39,7 +39,7 @@ Edit authored TypeScript, not compiled JavaScript or declarations. Generate `dis
 
 ## Architectural boundaries
 
-Preserve synchronous EventEmitter ordering and standard listener APIs. Component teardown removes its own callbacks; destroying a shared mediator must not be used to clean up one component. Typed event maps do not supply runtime validation.
+Preserve synchronous EventTarget dispatch, DOM-style listener identity and snapshot semantics across supported runtimes, and payload delivery through CustomEvent.detail. Do not reintroduce EventEmitter aliases or a runtime event-emitter dependency. Component teardown removes its own callbacks; destroy() is for the mediator instance leaving its lifecycle, not for one component to clean up a shared bus. Caller-provided AbortSignals must remain interoperable with native abort state. Typed event maps constrain listener registration and callback detail at compile time only; dispatchEvent() remains native and there is no runtime payload validation.
 
 ---
 
