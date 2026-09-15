@@ -2,7 +2,7 @@
 
 > Application events without application coupling.
 
-`white-label-mediator` is a lightweight TypeScript and JavaScript event bus for loosely coupled browser and Node.js applications. Version 5 is built directly on the web-standard `EventTarget`, `CustomEvent`, and `AbortController` APIs and has no runtime dependencies.
+`white-label-mediator` is a lightweight TypeScript and JavaScript event bus for loosely coupled browser and Node.js applications. Version 5 is built directly on the web-standard `EventTarget`, `CustomEvent`, and `AbortSignal` APIs and has no runtime dependencies.
 
 [Documentation](https://whitelabeljs.org/docs/mediator/) · [API reference](https://whitelabeljs.org/api/#mediator) · [Demo site](https://whitelabeljs.org/)
 
@@ -69,11 +69,11 @@ Mediator extends the platform `EventTarget` class.
 
 | Method | Behavior |
 | --- | --- |
-| `addEventListener(name, callback, options?)` | Subscribe using standard EventTarget options such as `once` and `signal`. Mediator automatically adds its lifecycle signal. |
+| `addEventListener(name, callback, options?)` | Subscribe using standard EventTarget options such as `once` and `signal`. Mediator tracks owned registrations for deterministic lifecycle cleanup. |
 | `removeEventListener(name, callback, options?)` | Remove a subscription using standard EventTarget matching rules. |
 | `dispatchEvent(event)` | Synchronously dispatch an `Event` or `CustomEvent`. |
 | `initialize()` | Start the lifecycle and return the same mediator instance. |
-| `destroy()` | Abort all listeners registered through this mediator, reset the lifecycle scope, and return the same instance. |
+| `destroy()` | Remove every listener owned by this mediator and return the same reusable instance. |
 
 All other EventTarget behavior is native rather than reimplemented by this package.
 
@@ -93,7 +93,7 @@ mediator.addEventListener('application:ready', () => {
 }, {once: true});
 ```
 
-`destroy()` is for the mediator itself leaving an application lifecycle. Internally, listener registration is scoped with `AbortController`; destruction aborts that scope and creates a fresh one so the same mediator can be reused if needed.
+`destroy()` is for the mediator itself leaving an application lifecycle. Mediator records the native registrations it owns and removes them explicitly during destruction, so cleanup does not depend on a shared lifecycle `AbortSignal` and the same mediator can be reused if needed.
 
 ```js
 mediator.initialize();
@@ -101,7 +101,7 @@ mediator.initialize();
 mediator.destroy();
 ```
 
-A caller-provided `AbortSignal` is combined with the mediator lifecycle signal, so either signal can release the listener.
+A caller-provided `AbortSignal` is still honored. Registrations sharing that signal are released when it aborts, independently of mediator-wide `destroy()` cleanup.
 
 ## Router intent
 
@@ -198,7 +198,7 @@ Version 5 intentionally drops the Node `EventEmitter` compatibility API. The dir
 | `removeListener(name, listener)` | `removeEventListener(name, listener)` |
 | `removeAllListeners()` | `destroy()` for mediator-owned lifecycle cleanup |
 
-EventTarget deliberately differs from EventEmitter in duplicate registration, symbol event names, cancellation/return semantics, error events, listener inspection, prepend methods, and meta-events. See [`docs/events-compatibility.md`](docs/events-compatibility.md).
+EventTarget deliberately differs from EventEmitter in duplicate registration, symbol event names, cancellation/return semantics, error events, listener inspection, prepend methods, and meta-events. Listener exceptions are reported using native EventTarget behavior rather than being rethrown from `dispatchEvent()` the way EventEmitter listener exceptions propagate from `emit()`. See [`docs/events-compatibility.md`](docs/events-compatibility.md).
 
 ## TypeScript
 
