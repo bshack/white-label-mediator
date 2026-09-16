@@ -21,11 +21,19 @@ Use it independently or compose it with the rest of White Label:
 
 The package has no runtime dependencies.
 
+## Where it fits
+
+Mediator fits best when modules genuinely need to exchange application intent without directly importing or calling one another. That can be a new TypeScript application, a progressively enhanced server-rendered page, an existing CMS/commerce frontend being modernized one feature at a time, or Node.js modules that want the same standards-based event contract.
+
+Because it is an `EventTarget`, it can be introduced independently. A host application does not need to adopt White Label Model, View, Router, a component framework, or a new rendering system just to use the event boundary.
+
+Use direct function calls when the caller already owns the callee and no decoupling boundary is needed. Mediator is intentionally not a durable queue, service bus, cross-process broker, state store, or global application API.
+
 ## Requirements
 
-- Node.js `^22.18.0` or `>=24.11.0` for installation and development
-- A runtime with `EventTarget`, `CustomEvent`, `AbortController`, and `AbortSignal.any`
-- npm, Yarn, and pnpm are supported for installation; see [`PACKAGE_MANAGERS.md`](PACKAGE_MANAGERS.md)
+- Node.js `^22.18.0` or `>=24.11.0` for installation and development.
+- A runtime with `EventTarget`, `CustomEvent`, `AbortController`, and `AbortSignal.any`.
+- npm, Yarn, and pnpm are supported for installation; see [`PACKAGE_MANAGERS.md`](PACKAGE_MANAGERS.md).
 
 ## Install
 
@@ -37,7 +45,6 @@ npm install white-label-mediator
 
 ```js
 import Mediator from 'white-label-mediator';
-
 const mediator = new Mediator();
 ```
 
@@ -85,23 +92,17 @@ Keep callback references when a component owns explicit cleanup:
 mediator.removeEventListener('menu:state', updateMenu);
 ```
 
-Use the standard `once` option for one-time intent:
+Use native listener options for one-time or abortable intent:
 
 ```js
-mediator.addEventListener('application:ready', () => {
-    console.log('Ready');
-}, {once: true});
+mediator.addEventListener('application:ready', handleReady, {once: true});
+
+const controller = new AbortController();
+mediator.addEventListener('application:change', handleChange, {signal: controller.signal});
+controller.abort();
 ```
 
-`destroy()` is for the mediator itself leaving an application lifecycle. Mediator records the native registrations it owns and removes them explicitly during destruction, so cleanup does not depend on a shared lifecycle `AbortSignal` and the same mediator can be reused if needed.
-
-```js
-mediator.initialize();
-// ...application lifetime...
-mediator.destroy();
-```
-
-A caller-provided `AbortSignal` is still honored. Registrations sharing that signal are released when it aborts, independently of mediator-wide `destroy()` cleanup.
+`destroy()` is for the mediator itself leaving an application lifecycle. Mediator records its registrations and removes them explicitly during destruction, so cleanup does not depend on a shared lifecycle signal and the instance can be reused if needed.
 
 ## Router intent
 
@@ -132,6 +133,8 @@ mediator.addEventListener('model:session:update', event => {
 });
 ```
 
+This composition is structural: applications can use Mediator with Model, with another EventTarget-compatible source, or by itself.
+
 ## Typed event details
 
 Supply an event-detail map to type listener event names and `CustomEvent.detail` without adding runtime code:
@@ -143,7 +146,6 @@ type Events = {
 };
 
 const mediator = new Mediator<Events>();
-
 mediator.addEventListener('ready', event => {
     console.log(event.detail.name);
 });
@@ -153,9 +155,11 @@ mediator.dispatchEvent(new CustomEvent('ready', {
 }));
 ```
 
-The generic map types listener registration. `dispatchEvent()` remains the native EventTarget method and accepts `Event`; applications construct `CustomEvent` payloads explicitly.
+The generic map types listener registration. `dispatchEvent()` remains the native EventTarget method and accepts `Event`; applications construct `CustomEvent` payloads explicitly. TypeScript typing is not runtime payload validation.
 
 ## Extend it when the application has a vocabulary
+
+Application-specific convenience methods can live in a subclass without changing the package contract:
 
 ```js
 class ApplicationMediator extends Mediator {
@@ -165,12 +169,9 @@ class ApplicationMediator extends Mediator {
         }));
     }
 }
-
-const applicationMediator = new ApplicationMediator();
-applicationMediator.addEventListener('application:error', event => {
-    console.error(event.detail);
-});
 ```
+
+This is the preferred place for domain vocabulary. The core package should remain generic rather than accumulating framework-, CMS-, commerce-, or cloud-specific methods.
 
 ## Browser, server, and accessibility
 
@@ -182,13 +183,13 @@ Because Mediator does not render markup, accessibility and indexing remain respo
 
 Mediator can coordinate modules inside one serverless invocation without introducing a cloud-specific dependency. When listeners or payloads are request-specific, create the Mediator inside the request handler and call `destroy()` before that request-owned lifecycle ends.
 
-Do not rely on a module-level Mediator for request isolation merely because the platform is called “serverless.” Function processes can stay warm and handle many requests, so listeners and request data can survive into later invocations when the same mutable instance is reused.
+Do not rely on a module-level Mediator for request isolation merely because the platform is called “serverless.” Warm function processes can handle many requests, so listeners and request data can survive into later invocations when a mutable instance is reused.
 
-Mediator is an in-memory event bus. It does **not** replace SQS, SNS, EventBridge, Kafka, Pub/Sub, durable queues, retries, or communication between separate function instances.
+Mediator is an in-memory event bus. It does **not** replace SQS, SNS, EventBridge, Kafka, Pub/Sub, durable queues, retries, or communication between separate processes/function instances.
 
 ## Event contract
 
-Mediator follows standard `EventTarget` listener registration, removal, cancellation, and `CustomEvent.detail` payload semantics. It tracks its owned registrations so `destroy()` can clean them up deterministically while leaving the instance reusable. See [`docs/events-compatibility.md`](docs/events-compatibility.md) for the detailed current contract and runtime-normalization notes.
+Mediator follows standard `EventTarget` listener registration, removal, cancellation, and `CustomEvent.detail` payload semantics. It tracks owned registrations so `destroy()` can clean them up deterministically while leaving the instance reusable. See [`docs/events-compatibility.md`](docs/events-compatibility.md) for detailed compatibility notes.
 
 ## TypeScript
 
@@ -207,10 +208,10 @@ npm run audit
 npm pack --dry-run
 ```
 
-Coverage enforces 100% statements, branches, functions, and lines per implementation file. CI builds authored source, uploads generated artifacts for inspection, audits dependencies, packs the package, and verifies the packed public API across npm, Yarn, and pnpm.
+Coverage enforces 100% statements, branches, functions, and lines per implementation file. CI builds authored source, audits dependencies, packs the package, and verifies the public API across npm, Yarn, and pnpm.
 
 Edit `src/*.ts` and regenerate `dist`; do not edit generated files directly.
 
 ## Design boundary
 
-Mediator moves named events. It intentionally does not own state, rendering, routing, networking, persistence, or application behavior. Keeping that boundary visible is what lets modules communicate without turning the event bus into the application itself.
+Mediator moves named events. It intentionally does not own state, rendering, routing, networking, persistence, durable messaging, or application behavior. Keeping that boundary visible is what lets modules communicate without turning the event bus into the application itself.
