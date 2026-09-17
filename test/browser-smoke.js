@@ -20,6 +20,17 @@ controller.abort();
 mediator.dispatchEvent(new CustomEvent('abortable', {detail: 3}));
 assert(!calls.includes(3), 'abort signal');
 
+const reentrantController = new AbortController();
+let reentrantCalls = 0;
+mediator.addEventListener('reentrant-abort', () => {
+    reentrantCalls += 1;
+}, {signal: reentrantController.signal});
+reentrantController.signal.addEventListener('abort', () => {
+    mediator.dispatchEvent(new Event('reentrant-abort'));
+});
+reentrantController.abort();
+assert(reentrantCalls === 0, 're-entrant abort signal');
+
 mediator.destroy();
 mediator.dispatchEvent(new CustomEvent('data', {detail: 99}));
 assert(!calls.includes(99), 'lifecycle cleanup');

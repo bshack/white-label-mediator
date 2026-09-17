@@ -37,6 +37,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
     #registrations = new Map<string, Map<Listener, Map<boolean, ListenerRecord>>>();
     #signals = new Map<AbortSignal, SignalRecord>();
     #dispatchToken = 0;
+    #activeDispatchTokens = new Set<number>();
     #nextDispatchToken = 0;
 
     /** Start this instance and return it for lifecycle chaining. */
@@ -65,8 +66,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
             : this.#signals.get(normalized.signal);
         const signalAborted = normalized.signal === undefined
             ? false
-            : signalRecord?.signal.aborted
-                ?? Boolean(Reflect.apply(abortSignalAborted, normalized.signal, []));
+            : Boolean(Reflect.apply(abortSignalAborted, normalized.signal, []));
 
         if (!normalizedCallback) {return;}
         if (this.#getRecord(normalizedType, normalizedCallback, normalized.capture)) {return;}
@@ -76,17 +76,22 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
             ? undefined
             : signalRecord?.signal ?? AbortSignal.any([normalized.signal]);
         const thisMediator = this;
-        const registrationToken = this.#dispatchToken;
+        const blockedDispatchTokens = this.#activeDispatchTokens.size === 0
+            ? undefined
+            : new Set(this.#activeDispatchTokens);
         const needsWrapper = normalized.once
+            || normalized.signal !== undefined
             || typeof normalizedCallback !== 'function'
-            || registrationToken !== 0;
+            || blockedDispatchTokens !== undefined;
         const listener: Listener = needsWrapper
             ? function(this: EventTarget, event: Event) {
                 // DOM dispatch invokes a clone of the listener list. Node walks a
-                // live list, so suppress a registration if Node reaches it later
-                // in the same dispatch in which it was added. Nested dispatches
-                // get a different token and can observe the new registration.
-                if (registrationToken !== 0 && thisMediator.#dispatchToken === registrationToken) {return;}
+                // live list, so a registration must stay out of every dispatch
+                // that was already active when it was added. Later nested
+                // dispatches use new tokens and can observe the registration.
+                if (blockedDispatchTokens?.has(thisMediator.#dispatchToken)) {return;}
+                if (normalized.signal !== undefined
+                    && Boolean(Reflect.apply(abortSignalAborted, normalized.signal, []))) {return;}
                 if (normalized.once) {thisMediator.#removeRecord(record);}
                 if (typeof normalizedCallback === 'function') {
                     normalizedCallback.call(this, event);
@@ -150,10 +155,13 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
     /** Dispatch with DOM-style listener snapshot semantics across supported runtimes. */
     override dispatchEvent(event: Event): boolean {
         const previousToken = this.#dispatchToken;
-        this.#dispatchToken = ++this.#nextDispatchToken;
+        const token = ++this.#nextDispatchToken;
+        this.#dispatchToken = token;
+        this.#activeDispatchTokens.add(token);
         try {
             return super.dispatchEvent(event);
         } finally {
+            this.#activeDispatchTokens.delete(token);
             this.#dispatchToken = previousToken;
         }
     }
