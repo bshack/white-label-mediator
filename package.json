@@ -1,6 +1,6 @@
 {
   "name": "white-label-mediator",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Lightweight standards-based TypeScript event bus for loosely coupled browser, Node.js, and progressively enhanced applications with optional typed events.",
   "sideEffects": false,
   "main": "dist/index.js",
