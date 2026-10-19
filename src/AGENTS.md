@@ -12,6 +12,10 @@ These instructions are more specific than the repository-root agent guide for fi
 - Preserve synchronous delivery and native `dispatchEvent()` cancellation semantics. The boolean return value is not a listener-count signal.
 - Preserve deterministic cleanup. `destroy()` releases listeners owned by the Mediator while caller-provided `AbortSignal` behavior remains native and independently effective.
 - Optional TypeScript event-detail maps are compile-time ergonomics only. Do not silently add runtime payload validation to `dispatchEvent()`.
+- Published declarations must not reference DOM-only global names (for example `EventListenerObject`, `AddEventListenerOptions`); use the local structural types so `tsconfig.consumer-node.json` keeps compiling. `test-types/dom-listener-types.mts` proves the local types match the DOM ones.
+- Caller signals are observed through one private `AbortSignal.any([signal])` per caller signal, cached in a module-level `WeakMap` and shared across registrations and mediators. Do not allocate a new dependent signal per registration; it grows memory on long-lived signals.
+- Listener exceptions are not caught, wrapped, or rethrown; native EventTarget error reporting applies. `once` listeners are removed before they are invoked.
+- The dispatch snapshot boundary lives in `Mediator.prototype.dispatchEvent()` (numeric dispatch tokens). `EventTarget.prototype.dispatchEvent.call(mediator, …)` bypasses it by design.
 
 ## Verification
 

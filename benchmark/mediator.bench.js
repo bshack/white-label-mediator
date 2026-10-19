@@ -1,5 +1,10 @@
 'use strict';
 
+// Diagnostic benchmark comparing Mediator with native EventTarget and EventEmitter.
+// Run with `npm run benchmark` (builds first). It is not part of the gate or CI and
+// takes more than 30 minutes: Node's native EventTarget baseline is quadratic in two
+// of the cases below. Results are medians of several rounds and enforce no thresholds.
+
 const {EventEmitter, setMaxListeners} = require('node:events');
 const {performance} = require('node:perf_hooks');
 const Mediator = require('../dist');

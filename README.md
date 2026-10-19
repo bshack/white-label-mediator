@@ -19,8 +19,6 @@ Use it independently or compose it with the rest of White Label:
 - [`white-label-view`](https://github.com/bshack/white-label-view) can publish or consume application events without becoming coupled to other components.
 - [`generator-white-label`](https://github.com/bshack/white-label) demonstrates the pieces together.
 
-The package has no runtime dependencies.
-
 ## Where it fits
 
 Mediator fits best when modules genuinely need to exchange application intent without directly importing or calling one another. That can be a new TypeScript application, a progressively enhanced server-rendered page, an existing CMS/commerce frontend being modernized one feature at a time, or Node.js modules that want the same standards-based event contract.
@@ -76,13 +74,13 @@ Mediator extends the platform `EventTarget` class.
 
 | Method | Behavior |
 | --- | --- |
-| `addEventListener(name, callback, options?)` | Subscribe using standard EventTarget options such as `once` and `signal`. Mediator tracks owned registrations for deterministic lifecycle cleanup. |
-| `removeEventListener(name, callback, options?)` | Remove a subscription using standard EventTarget matching rules. |
-| `dispatchEvent(event)` | Synchronously dispatch an `Event` or `CustomEvent`. |
-| `initialize()` | Start the lifecycle and return the same mediator instance. |
-| `destroy()` | Remove every listener owned by this mediator and return the same reusable instance. |
+| `addEventListener(name, callback, options?)` | Subscribe with a function or `{handleEvent}` object. `options` is a capture boolean or `{capture, once, passive, signal}`. Adding the same callback, name, and capture mode twice is a no-op. Mediator records the listener so `destroy()` can remove it. |
+| `removeEventListener(name, callback, options?)` | Remove a subscription. It matches on name, callback, and `capture`, as EventTarget does. |
+| `dispatchEvent(event)` | Deliver an `Event` or `CustomEvent` synchronously. Returns `false` only if a cancelable event was canceled. |
+| `initialize()` | Lifecycle hook that does nothing else and returns the same mediator, for chaining. |
+| `destroy()` | Remove every listener added through this mediator and return the same, still usable, instance. |
 
-All other EventTarget behavior is native rather than reimplemented by this package.
+Invalid arguments throw a `TypeError`: fewer than two arguments, a callback that is not a function, object, `null`, or `undefined`, a symbol event name, or a `signal` that is not an `AbortSignal`. All other EventTarget behavior is native rather than reimplemented by this package.
 
 ## Lifecycle and ownership
 
@@ -102,7 +100,9 @@ mediator.addEventListener('application:change', handleChange, {signal: controlle
 controller.abort();
 ```
 
-`destroy()` is for the mediator itself leaving an application lifecycle. Mediator records its registrations and removes them explicitly during destruction, so cleanup does not depend on a shared lifecycle signal and the instance can be reused if needed.
+Aborting the signal removes the listener; passing an already-aborted signal means it is never added. One signal can be shared by many listeners and many mediators, and a long-lived signal can be reused for any number of add/remove cycles without growing memory.
+
+`destroy()` is for the mediator itself leaving an application lifecycle, not for one component cleaning up a shared bus. It removes every listener added through the mediator and leaves the instance usable.
 
 ## Listener errors
 
@@ -165,7 +165,7 @@ mediator.dispatchEvent(new CustomEvent('ready', {
 }));
 ```
 
-The generic map types listener registration. `dispatchEvent()` remains the native EventTarget method and accepts `Event`; applications construct `CustomEvent` payloads explicitly. TypeScript typing is not runtime payload validation.
+With a map, `addEventListener()` and `removeEventListener()` accept only the map's event names, and contextually typed listeners receive `CustomEvent<Detail>` for that name. Without a map, any string name is accepted and `detail` is `unknown`. `dispatchEvent()` remains the native EventTarget method and accepts `Event`; applications construct `CustomEvent` payloads explicitly. TypeScript typing is not runtime payload validation.
 
 Known limitation: like the DOM's own event listener types, a listener's event parameter is checked bivariantly. Annotating a listener with a detail type that is unrelated to the event map is rejected, but a narrower annotation is accepted: for `ready: {name: string}`, a listener declared as `(event: CustomEvent<{name: string; age: number}>) => …` compiles even though no `age` is guaranteed. Listener objects (`{handleEvent(event: Event)}`) are not detail-typed. Prefer contextually typed listeners, which infer the declared detail exactly.
 
@@ -205,7 +205,7 @@ Mediator follows standard `EventTarget` listener registration, removal, cancella
 
 ## TypeScript
 
-Implementation uses strict TypeScript and emits JavaScript, source maps, and declarations into `dist`.
+The package ships CommonJS with TypeScript declarations (`export = Mediator`), so `import Mediator from 'white-label-mediator'` works from ESM and from TypeScript with `esModuleInterop`, and `require('white-label-mediator')` works from CommonJS.
 
 The published declarations need the global `EventTarget`, `Event`, `CustomEvent`, `EventListenerOptions`, and `AbortSignal` types, which come from either the `DOM` lib or `@types/node`. Browser projects (`lib: ["DOM"]`) and Node-only projects (`lib: ["ES2022"]`, `types: ["node"]`) are both type-checked in CI. A project with neither the `DOM` lib nor `@types/node` has no `EventTarget` type to extend and is not supported.
 
@@ -213,18 +213,10 @@ The published declarations need the global `EventTarget`, `Event`, `CustomEvent`
 
 ```sh
 npm ci --ignore-scripts
-npm run build
-npm run lint
-npm run typecheck
-npm test
-npm run coverage
-npm run audit
-npm pack --dry-run
+npm run lint && npm run coverage && npm run audit
 ```
 
-Coverage enforces 100% statements, branches, functions, and lines per implementation file. CI builds authored source, audits dependencies, packs the package, and verifies the public API across npm, Yarn, and pnpm.
-
-Edit `src/*.ts` and regenerate `dist`; do not edit generated files directly.
+`npm run coverage` builds (which typechecks), checks the consumer types, runs every test, and requires 100% coverage. Edit `src/*.ts`, never `dist/`. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the fast loop, packaging checks, and benchmarks.
 
 ## Design boundary
 

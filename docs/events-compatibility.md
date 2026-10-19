@@ -22,7 +22,8 @@ The regression suite protects the behavior White Label depends on:
 - forced-GC cleanup for mediator-owned listeners and listeners sharing a caller AbortSignal;
 - re-registering listeners after `once` or signal-driven cleanup;
 - reusing a mediator after `destroy()`;
-- native `dispatchEvent()` cancellation return semantics; and
+- native `dispatchEvent()` cancellation return semantics;
+- listener exceptions not interrupting delivery or reaching the dispatching caller, including throwing `once` listeners still being removed; and
 - the same contract in supported Node runtimes without `window` or `document`.
 
 ## dispatchEvent return value
@@ -57,4 +58,4 @@ Mediator also uses the object form of `{capture}` for owned removals. Supported 
 
 ## Browser verification
 
-`test/browser-smoke.js` exercises `CustomEvent`, `once`, caller AbortSignal cleanup, and `destroy()` in a browser-facing build.
+`test/browser-smoke.js` exercises `CustomEvent`, `once`, caller AbortSignal cleanup, and `destroy()`. `test/browser-smoke.test.js` runs it in Node against the built package on every test run so it stays correct; to check a real browser, bundle `test/browser-smoke.js` and load it in a page (it sets `globalThis.whiteLabelSmokePassed = true` on success).

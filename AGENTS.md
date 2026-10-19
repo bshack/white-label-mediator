@@ -2,11 +2,11 @@
 
 Standards-based EventTarget application event bus with optional typed listener event maps.
 
-Verified against `package.json`, `README.md`, and `.github/workflows/security.yml` on September 15, 2026. Recheck those files when commands or supported environments change.
+Verified against `package.json`, `README.md`, and `.github/workflows/security.yml` on October 19, 2026. Recheck those files when commands or supported environments change.
 
 ## Code map
 
-`src/` contains implementation TypeScript (see `src/AGENTS.md`); `test/` holds Node tests; `tsconfig.consumer.json` (DOM) and `tsconfig.consumer-node.json` (Node-only, no DOM lib) check consumer types; `dist/index.js` and `dist/index.d.ts` are the package entry points.
+`src/index.ts` is the whole implementation (see `src/AGENTS.md`); `test/` holds Node tests (`node --test`); `test-types/` holds consumer type tests, checked by `tsconfig.consumer.json` (DOM lib) and `tsconfig.consumer-node.json` (Node-only, no DOM lib; excludes `dom-listener-types.mts`); `benchmark/` holds a diagnostic benchmark; `docs/` holds the EventTarget and runtime compatibility notes; `dist/index.js` and `dist/index.d.ts` are the package entry points.
 
 ## Toolchain
 
@@ -30,7 +30,7 @@ A focused run never replaces the full gate.
 npm run lint && npm run coverage && npm run audit
 ```
 
-`npm run coverage` runs the build (which typechecks), the consumer type checks, and every Node test, and enforces 100% statements, branches, functions, and lines per implementation file. That covers `npm run typecheck` and `npm test`, so they don't need separate runs. Lint warnings are failures. No formatter script is configured. CI also packs the package and verifies that the packed Mediator package installs and exposes the expected runtime entry point.
+`npm run coverage` runs the build (which typechecks), the consumer type checks, and every Node test, and enforces 100% statements, branches, functions, and lines per implementation file. That covers `npm run typecheck` and `npm test`, so they don't need separate runs. Lint warnings are failures. No formatter script is configured. Do not run `npm run benchmark` as verification: it is not part of the gate and takes more than 30 minutes (Node's native EventTarget baseline is quadratic in two cases). CI also packs the package and verifies that the packed Mediator package installs and exposes the expected runtime entry point.
 
 Source-first testing policy: authored source and the committed lockfile are authoritative. Keep behavior, consumer-type, 100% coverage, build, audit, package, and packed-install verification strict. Do not use committed `dist/` synchronization as a correctness gate, or commit generated `dist/` from CI just to keep it in sync, unless the release workflow explicitly requires source-controlled artifacts. Reduce CI noise by removing brittle synchronization checks, never by weakening tests, lowering coverage, skipping type checks, or bypassing package or runtime verification.
 
