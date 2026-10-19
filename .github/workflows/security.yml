@@ -22,28 +22,19 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run lint
-      - run: npm run build
-      - run: npm run typecheck
-      - run: npm test
+      # coverage builds (which typechecks), checks consumer types, and runs every Node test.
       - run: npm run coverage
       - run: npm run audit
-      - run: npm pack --dry-run
+      # dist/ was built by coverage; skip the prepare script's rebuild while packing.
+      - run: npm pack --dry-run --ignore-scripts
       - name: Create packed package
-        run: npm pack --silent
+        run: npm pack --silent --ignore-scripts
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: packed-package
           path: '*.tgz'
           if-no-files-found: error
           retention-days: 7
-      - name: Verify packed install
-        run: |
-          PACKAGE="$(ls *.tgz)"
-          TEMP="$(mktemp -d)"
-          cd "$TEMP"
-          printf '{"private":true}\n' > package.json
-          npm install --ignore-scripts "$GITHUB_WORKSPACE/$PACKAGE" >/dev/null
-          node -e "const Mediator=require('white-label-mediator'); if (typeof Mediator !== 'function') process.exit(1)"
 
   minimum-node-runtime:
     runs-on: ubuntu-latest
@@ -85,6 +76,15 @@ jobs:
             corepack prepare pnpm@10.17.1 --activate
           fi
       - name: Verify packed package
+        env:
+          # Resolve the installed entry point and prove it delivers a CustomEvent payload.
+          CHECK: >-
+            const Mediator = require('white-label-mediator');
+            const mediator = new Mediator();
+            let detail;
+            mediator.addEventListener('ready', event => { detail = event.detail; });
+            mediator.dispatchEvent(new CustomEvent('ready', {detail: 42}));
+            if (typeof Mediator !== 'function' || detail !== 42) process.exit(1);
         run: |
           PACKAGE="$(realpath package/*.tgz)"
           TEMP="$(mktemp -d)"
@@ -93,14 +93,14 @@ jobs:
           case "${{ matrix.package-manager }}" in
             npm)
               npm install --ignore-scripts "$PACKAGE" >/dev/null
-              node -e "const Mediator=require('white-label-mediator'); if (typeof Mediator !== 'function') process.exit(1)"
+              node -e "$CHECK"
               ;;
             yarn)
               yarn add "$PACKAGE" >/dev/null
-              yarn node -e "const Mediator=require('white-label-mediator'); if (typeof Mediator !== 'function') process.exit(1)"
+              yarn node -e "$CHECK"
               ;;
             pnpm)
               pnpm add --ignore-scripts "$PACKAGE" >/dev/null
-              pnpm exec node -e "const Mediator=require('white-label-mediator'); if (typeof Mediator !== 'function') process.exit(1)"
+              pnpm exec node -e "$CHECK"
               ;;
           esac

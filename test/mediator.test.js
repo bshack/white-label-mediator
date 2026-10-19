@@ -17,12 +17,17 @@ describe('Mediator', () => {
         const received = [];
         mediator.addEventListener('menu:state', function(event) {
             assert.equal(this, mediator);
-            received.push(event.detail);
+            received.push(event);
         });
 
-        const delivered = mediator.dispatchEvent(new CustomEvent('menu:state', {detail: {open: true}}));
+        const detail = {open: true};
+        const event = new CustomEvent('menu:state', {detail});
+        const delivered = mediator.dispatchEvent(event);
         assert.equal(delivered, true);
-        assert.deepEqual(received, [{open: true}]);
+        assert.equal(received.length, 1);
+        // Listeners must see the dispatched event and the original detail reference, not copies.
+        assert.equal(received[0], event);
+        assert.equal(received[0].detail, detail);
     });
 
     it('removes once listeners before re-entrant dispatch', () => {
@@ -85,11 +90,16 @@ describe('Mediator', () => {
         const second = mock.fn();
         mediator.addEventListener('first', first, {signal: controller.signal});
         mediator.addEventListener('second', second, {signal: controller.signal});
+        mediator.dispatchEvent(new CustomEvent('first'));
+        mediator.dispatchEvent(new CustomEvent('second'));
+        assert.equal(first.mock.callCount(), 1);
+        assert.equal(second.mock.callCount(), 1);
+
         controller.abort();
         mediator.dispatchEvent(new CustomEvent('first'));
         mediator.dispatchEvent(new CustomEvent('second'));
-        assert.equal(first.mock.callCount(), 0);
-        assert.equal(second.mock.callCount(), 0);
+        assert.equal(first.mock.callCount(), 1);
+        assert.equal(second.mock.callCount(), 1);
     });
 
     it('keeps a shared signal active while another registration still owns it', () => {
@@ -100,11 +110,14 @@ describe('Mediator', () => {
         mediator.addEventListener('first', first, {signal: controller.signal});
         mediator.addEventListener('second', second, {signal: controller.signal});
         mediator.removeEventListener('first', first);
-        controller.abort();
         mediator.dispatchEvent(new CustomEvent('first'));
         mediator.dispatchEvent(new CustomEvent('second'));
         assert.equal(first.mock.callCount(), 0);
-        assert.equal(second.mock.callCount(), 0);
+        assert.equal(second.mock.callCount(), 1);
+
+        controller.abort();
+        mediator.dispatchEvent(new CustomEvent('second'));
+        assert.equal(second.mock.callCount(), 1);
     });
 
     it('honors inherited abort signals', () => {
@@ -113,9 +126,11 @@ describe('Mediator', () => {
         const callback = mock.fn();
         const options = Object.create({signal: controller.signal});
         mediator.addEventListener('ready', callback, options);
+        mediator.dispatchEvent(new CustomEvent('ready'));
+        assert.equal(callback.mock.callCount(), 1);
         controller.abort();
         mediator.dispatchEvent(new CustomEvent('ready'));
-        assert.equal(callback.mock.callCount(), 0);
+        assert.equal(callback.mock.callCount(), 1);
     });
 
     it('ignores pre-aborted signals and rejects invalid signals', () => {
@@ -233,5 +248,14 @@ describe('Mediator', () => {
         mediator.addEventListener('before:save', event => event.preventDefault());
         const result = mediator.dispatchEvent(new CustomEvent('before:save', {cancelable: true}));
         assert.equal(result, false);
+        assert.equal(mediator.dispatchEvent(new CustomEvent('before:save')), true);
+    });
+
+    it('forwards the passive option so preventDefault cannot cancel the event', () => {
+        const mediator = new Mediator();
+        const event = new CustomEvent('scroll', {cancelable: true});
+        mediator.addEventListener('scroll', current => current.preventDefault(), {passive: true});
+        assert.equal(mediator.dispatchEvent(event), true);
+        assert.equal(event.defaultPrevented, false);
     });
 });
