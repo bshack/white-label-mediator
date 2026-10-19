@@ -251,11 +251,26 @@ describe('Mediator', () => {
         assert.equal(mediator.dispatchEvent(new CustomEvent('before:save')), true);
     });
 
-    it('forwards the passive option so preventDefault cannot cancel the event', () => {
-        const mediator = new Mediator();
-        const event = new CustomEvent('scroll', {cancelable: true});
-        mediator.addEventListener('scroll', current => current.preventDefault(), {passive: true});
-        assert.equal(mediator.dispatchEvent(event), true);
-        assert.equal(event.defaultPrevented, false);
+    it('forwards the passive option with the same cancellation result as native EventTarget', () => {
+        // Supported runtimes differ: Node 22.18 ignores passive, so preventDefault()
+        // still cancels there. Mediator must match the running runtime's EventTarget.
+        const cancel = current => current.preventDefault();
+        const dispatch = (target, options) => {
+            target.addEventListener('scroll', cancel, options);
+            const event = new CustomEvent('scroll', {cancelable: true});
+            return {result: target.dispatchEvent(event), defaultPrevented: event.defaultPrevented};
+        };
+
+        const nativePassive = dispatch(new EventTarget(), {passive: true});
+        assert.deepEqual(dispatch(new Mediator(), {passive: true}), nativePassive);
+        assert.equal(nativePassive.result, !nativePassive.defaultPrevented);
+
+        const nonPassive = {result: false, defaultPrevented: true};
+        assert.deepEqual(dispatch(new EventTarget(), {passive: false}), nonPassive);
+        assert.deepEqual(dispatch(new Mediator(), {passive: false}), nonPassive);
+
+        // Mediator wraps signal and once listeners; passive must reach those registrations too.
+        const signal = new AbortController().signal;
+        assert.deepEqual(dispatch(new Mediator(), {passive: true, once: true, signal}), nativePassive);
     });
 });

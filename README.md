@@ -104,6 +104,16 @@ controller.abort();
 
 `destroy()` is for the mediator itself leaving an application lifecycle. Mediator records its registrations and removes them explicitly during destruction, so cleanup does not depend on a shared lifecycle signal and the instance can be reused if needed.
 
+## Listener errors
+
+Mediator does not catch, wrap, or rethrow listener exceptions; it keeps the native `EventTarget` behavior:
+
+- A listener that throws does not stop delivery. Later listeners still run, and `dispatchEvent()` still returns normally with its usual cancellation result; the exception is never thrown to the dispatching caller.
+- The exception is reported asynchronously by the runtime. In Node.js it is rethrown on `process.nextTick`, so it reaches `process.on('uncaughtException')` and, with no such handler, terminates the process. Browsers report it to `window.onerror` and the console.
+- A `once` listener is removed before it is invoked, so a `once` listener that throws is still removed and does not run again.
+
+Handle expected failures inside the listener when the dispatching code must know about them.
+
 ## Router intent
 
 Mediator and Router compose through an ordinary web event:
@@ -157,6 +167,8 @@ mediator.dispatchEvent(new CustomEvent('ready', {
 
 The generic map types listener registration. `dispatchEvent()` remains the native EventTarget method and accepts `Event`; applications construct `CustomEvent` payloads explicitly. TypeScript typing is not runtime payload validation.
 
+Known limitation: like the DOM's own event listener types, a listener's event parameter is checked bivariantly. Annotating a listener with a detail type that is unrelated to the event map is rejected, but a narrower annotation is accepted: for `ready: {name: string}`, a listener declared as `(event: CustomEvent<{name: string; age: number}>) => …` compiles even though no `age` is guaranteed. Listener objects (`{handleEvent(event: Event)}`) are not detail-typed. Prefer contextually typed listeners, which infer the declared detail exactly.
+
 ## Extend it when the application has a vocabulary
 
 Application-specific convenience methods can live in a subclass without changing the package contract:
@@ -194,6 +206,8 @@ Mediator follows standard `EventTarget` listener registration, removal, cancella
 ## TypeScript
 
 Implementation uses strict TypeScript and emits JavaScript, source maps, and declarations into `dist`.
+
+The published declarations need the global `EventTarget`, `Event`, `CustomEvent`, `EventListenerOptions`, and `AbortSignal` types, which come from either the `DOM` lib or `@types/node`. Browser projects (`lib: ["DOM"]`) and Node-only projects (`lib: ["ES2022"]`, `types: ["node"]`) are both type-checked in CI. A project with neither the `DOM` lib nor `@types/node` has no `EventTarget` type to extend and is not supported.
 
 ## Development
 

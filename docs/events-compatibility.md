@@ -37,6 +37,8 @@ Event names are converted to their DOM string value before ownership bookkeeping
 
 The DOM dispatch algorithm works from a clone of the listener list. Supported Node versions walk a live listener list, so a listener added while an event is already being delivered can otherwise run later in that same dispatch. Mediator tracks nested dispatches and suppresses only listeners that Node reaches in the same dispatch in which they were added. A nested dispatch gets its own snapshot boundary and can observe the new registration.
 
+The snapshot boundary is established by `Mediator.prototype.dispatchEvent()`. Code that deliberately bypasses it with `EventTarget.prototype.dispatchEvent.call(mediator, event)` gets the runtime's native listener-list behavior instead: in Node, a listener added during that dispatch can still run later in the same dispatch. Enforcing the boundary without the override would require wrapping every listener and identifying dispatches by event object, which cannot distinguish a later re-dispatch of the same event, so Mediator does not attempt it. Dispatch through the mediator's own method.
+
 Capture is still delegated to the underlying EventTarget. Node documents capture primarily as registration identity rather than implementing a DOM tree's capture/bubble propagation phases; Mediator does not invent a DOM tree or reimplement event propagation.
 
 ## Lifecycle cleanup
@@ -45,7 +47,7 @@ Mediator records each native EventTarget registration by the event type's DOM st
 
 One-time registrations are removed from both EventTarget and the ownership registry before their callback is invoked, preserving re-entrant `once` behavior. Explicit `removeEventListener()` calls update the same registry.
 
-Caller-provided AbortSignals remain supported. Registrations sharing one caller signal are grouped behind one private dependent signal created with `AbortSignal.any()`. Cleanup therefore follows actual signal abort state rather than ordinary, interceptable `'abort'` event delivery: application listeners cannot block cleanup with `stopImmediatePropagation()`, and manually dispatching an `'abort'` event does not cancel registrations.
+Caller-provided AbortSignals remain supported. Registrations sharing one caller signal are grouped behind one private dependent signal created with `AbortSignal.any()`. That dependent signal is created once per caller signal and reused for the signal's lifetime, across mediators and across repeated add/remove cycles, so a long-lived signal does not accumulate dependent signals. Cleanup therefore follows actual signal abort state rather than ordinary, interceptable `'abort'` event delivery: application listeners cannot block cleanup with `stopImmediatePropagation()`, and manually dispatching an `'abort'` event does not cancel registrations.
 
 The source signal is brand-validated and checked for an already-aborted state before a dependent signal is allocated. Duplicate registrations and registrations using an already-aborted signal therefore remain cheap no-ops while invalid signal values still throw.
 

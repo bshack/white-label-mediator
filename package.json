@@ -27,7 +27,7 @@
     "coverage": "node --run build && node --run test:types && c8 node --run test:unit",
     "benchmark": "node --run build && node benchmark/mediator.bench.js",
     "prepare": "node --run build",
-    "test:types": "tsc -p tsconfig.consumer.json",
+    "test:types": "tsc -p tsconfig.consumer.json && tsc -p tsconfig.consumer-node.json",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
     "lint:fix": "node --run lint -- --fix"
   },

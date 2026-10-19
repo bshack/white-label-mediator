@@ -262,4 +262,49 @@ describe('Mediator EventTarget edge cases', () => {
         mediator.dispatchEvent(new Event('second'));
         assert.equal(second.mock.callCount(), 1);
     });
+
+    it('reuses the dependent signal across add and remove cycles on a long-lived signal', t => {
+        const any = t.mock.method(AbortSignal, 'any');
+        const mediator = new Mediator();
+        const controller = new AbortController();
+        const callback = mock.fn();
+
+        for (let index = 0; index < 1_000; index += 1) {
+            mediator.addEventListener('ready', callback, {signal: controller.signal});
+            mediator.removeEventListener('ready', callback);
+        }
+        assert.equal(any.mock.callCount(), 1);
+
+        mediator.addEventListener('ready', callback, {signal: controller.signal});
+        mediator.dispatchEvent(new Event('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+        controller.abort();
+        mediator.dispatchEvent(new Event('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+        assert.equal(any.mock.callCount(), 1);
+    });
+
+    it('shares one dependent signal between mediators while cleaning up each independently', t => {
+        const any = t.mock.method(AbortSignal, 'any');
+        const first = new Mediator();
+        const second = new Mediator();
+        const controller = new AbortController();
+        const firstCallback = mock.fn();
+        const secondCallback = mock.fn();
+
+        first.addEventListener('ready', firstCallback, {signal: controller.signal});
+        second.addEventListener('ready', secondCallback, {signal: controller.signal});
+        assert.equal(any.mock.callCount(), 1);
+
+        first.removeEventListener('ready', firstCallback);
+        controller.abort();
+        first.dispatchEvent(new Event('ready'));
+        second.dispatchEvent(new Event('ready'));
+        assert.equal(firstCallback.mock.callCount(), 0);
+        assert.equal(secondCallback.mock.callCount(), 0);
+
+        second.addEventListener('ready', secondCallback);
+        second.dispatchEvent(new Event('ready'));
+        assert.equal(secondCallback.mock.callCount(), 1);
+    });
 });

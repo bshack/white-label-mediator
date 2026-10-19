@@ -6,7 +6,7 @@ Verified against `package.json`, `README.md`, and `.github/workflows/security.ym
 
 ## Code map
 
-`src/` contains implementation TypeScript (see `src/AGENTS.md`); `test/` holds Node tests; `tsconfig.consumer.json` checks consumer types; `dist/index.js` and `dist/index.d.ts` are the package entry points.
+`src/` contains implementation TypeScript (see `src/AGENTS.md`); `test/` holds Node tests; `tsconfig.consumer.json` (DOM) and `tsconfig.consumer-node.json` (Node-only, no DOM lib) check consumer types; `dist/index.js` and `dist/index.d.ts` are the package entry points.
 
 ## Toolchain
 
