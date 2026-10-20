@@ -39,5 +39,11 @@ test('separately scoped server mediators do not leak listeners or events across 
     second.addEventListener('complete', event => received.push(['second', event.detail]));
 
     first.dispatchEvent(new CustomEvent('complete', {detail: 1}));
-    assert.deepEqual(received, [['first', 1]]);
+    second.dispatchEvent(new CustomEvent('complete', {detail: 2}));
+    assert.deepEqual(received, [['first', 1], ['second', 2]]);
+
+    first.destroy();
+    first.dispatchEvent(new CustomEvent('complete', {detail: 3}));
+    second.dispatchEvent(new CustomEvent('complete', {detail: 4}));
+    assert.deepEqual(received, [['first', 1], ['second', 2], ['second', 4]]);
 });

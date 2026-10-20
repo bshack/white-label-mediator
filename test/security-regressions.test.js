@@ -19,10 +19,12 @@ describe('Mediator security regressions', () => {
             if (!registerAbortFirst) {
                 controller.signal.addEventListener('abort', dispatchOnAbort);
             }
+            mediator.dispatchEvent(new Event('work'));
+            assert.equal(callback.mock.callCount(), 1);
 
             controller.abort();
             mediator.dispatchEvent(new Event('work'));
-            assert.equal(callback.mock.callCount(), 0);
+            assert.equal(callback.mock.callCount(), 1);
         }
     });
 
@@ -62,9 +64,11 @@ describe('Mediator security regressions', () => {
         controller.signal.addEventListener('abort', () => {
             mediator.dispatchEvent(new Event('work'));
         });
+        mediator.dispatchEvent(new Event('work'));
+        assert.equal(callback.mock.callCount(), 1);
 
         controller.abort();
-        assert.equal(callback.mock.callCount(), 0);
+        assert.equal(callback.mock.callCount(), 1);
     });
 
     it('keeps nested registrations out of every dispatch already in progress', () => {

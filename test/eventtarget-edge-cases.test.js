@@ -36,11 +36,14 @@ describe('Mediator EventTarget edge cases', () => {
 
         mediator.addEventListener(type, callback);
         mediator.removeEventListener(type, callback);
+        mediator.dispatchEvent(new Event('first'));
+        assert.equal(callback.mock.callCount(), 1);
+
         mediator.destroy();
         mediator.dispatchEvent(new Event('first'));
 
         assert.equal(conversions, 2);
-        assert.equal(callback.mock.callCount(), 0);
+        assert.equal(callback.mock.callCount(), 1);
     });
 
     it('rejects primitive callbacks while still accepting null and undefined callbacks', () => {
@@ -213,10 +216,13 @@ describe('Mediator EventTarget edge cases', () => {
 
         controller.signal.addEventListener('abort', event => event.stopImmediatePropagation());
         mediator.addEventListener('ready', callback, {signal: controller.signal});
+        mediator.dispatchEvent(new Event('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+
         controller.abort();
         mediator.dispatchEvent(new Event('ready'));
 
-        assert.equal(callback.mock.callCount(), 0);
+        assert.equal(callback.mock.callCount(), 1);
     });
 
     it('does not treat a synthetic abort event as an actual signal abort', () => {
@@ -234,18 +240,71 @@ describe('Mediator EventTarget edge cases', () => {
         assert.equal(callback.mock.callCount(), 1);
     });
 
-    it('reuses one dependent signal for registrations sharing a caller signal', () => {
+    it('reuses one dependent signal for registrations sharing a caller signal', t => {
+        const any = t.mock.method(AbortSignal, 'any');
         const mediator = new Mediator();
         const controller = new AbortController();
+        const other = new AbortController();
         const first = mock.fn();
         const second = mock.fn();
 
         mediator.addEventListener('first', first, {signal: controller.signal});
         mediator.addEventListener('second', second, {signal: controller.signal});
+        assert.equal(any.mock.callCount(), 1);
+        mediator.addEventListener('third', mock.fn(), {signal: other.signal});
+        assert.equal(any.mock.callCount(), 2);
+
         mediator.removeEventListener('first', first);
+        mediator.dispatchEvent(new Event('second'));
+        assert.equal(second.mock.callCount(), 1);
+
         controller.abort();
         mediator.dispatchEvent(new Event('second'));
+        assert.equal(second.mock.callCount(), 1);
+    });
 
-        assert.equal(second.mock.callCount(), 0);
+    it('reuses the dependent signal across add and remove cycles on a long-lived signal', t => {
+        const any = t.mock.method(AbortSignal, 'any');
+        const mediator = new Mediator();
+        const controller = new AbortController();
+        const callback = mock.fn();
+
+        for (let index = 0; index < 1_000; index += 1) {
+            mediator.addEventListener('ready', callback, {signal: controller.signal});
+            mediator.removeEventListener('ready', callback);
+        }
+        assert.equal(any.mock.callCount(), 1);
+
+        mediator.addEventListener('ready', callback, {signal: controller.signal});
+        mediator.dispatchEvent(new Event('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+        controller.abort();
+        mediator.dispatchEvent(new Event('ready'));
+        assert.equal(callback.mock.callCount(), 1);
+        assert.equal(any.mock.callCount(), 1);
+    });
+
+    it('shares one dependent signal between mediators while cleaning up each independently', t => {
+        const any = t.mock.method(AbortSignal, 'any');
+        const first = new Mediator();
+        const second = new Mediator();
+        const controller = new AbortController();
+        const firstCallback = mock.fn();
+        const secondCallback = mock.fn();
+
+        first.addEventListener('ready', firstCallback, {signal: controller.signal});
+        second.addEventListener('ready', secondCallback, {signal: controller.signal});
+        assert.equal(any.mock.callCount(), 1);
+
+        first.removeEventListener('ready', firstCallback);
+        controller.abort();
+        first.dispatchEvent(new Event('ready'));
+        second.dispatchEvent(new Event('ready'));
+        assert.equal(firstCallback.mock.callCount(), 0);
+        assert.equal(secondCallback.mock.callCount(), 0);
+
+        second.addEventListener('ready', secondCallback);
+        second.dispatchEvent(new Event('ready'));
+        assert.equal(secondCallback.mock.callCount(), 1);
     });
 });

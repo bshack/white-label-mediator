@@ -22,7 +22,8 @@ The regression suite protects the behavior White Label depends on:
 - forced-GC cleanup for mediator-owned listeners and listeners sharing a caller AbortSignal;
 - re-registering listeners after `once` or signal-driven cleanup;
 - reusing a mediator after `destroy()`;
-- native `dispatchEvent()` cancellation return semantics; and
+- native `dispatchEvent()` cancellation return semantics;
+- listener exceptions not interrupting delivery or reaching the dispatching caller, including throwing `once` listeners still being removed; and
 - the same contract in supported Node runtimes without `window` or `document`.
 
 ## dispatchEvent return value
@@ -37,6 +38,8 @@ Event names are converted to their DOM string value before ownership bookkeeping
 
 The DOM dispatch algorithm works from a clone of the listener list. Supported Node versions walk a live listener list, so a listener added while an event is already being delivered can otherwise run later in that same dispatch. Mediator tracks nested dispatches and suppresses only listeners that Node reaches in the same dispatch in which they were added. A nested dispatch gets its own snapshot boundary and can observe the new registration.
 
+The snapshot boundary is established by `Mediator.prototype.dispatchEvent()`. Code that deliberately bypasses it with `EventTarget.prototype.dispatchEvent.call(mediator, event)` gets the runtime's native listener-list behavior instead: in Node, a listener added during that dispatch can still run later in the same dispatch. Enforcing the boundary without the override would require wrapping every listener and identifying dispatches by event object, which cannot distinguish a later re-dispatch of the same event, so Mediator does not attempt it. Dispatch through the mediator's own method.
+
 Capture is still delegated to the underlying EventTarget. Node documents capture primarily as registration identity rather than implementing a DOM tree's capture/bubble propagation phases; Mediator does not invent a DOM tree or reimplement event propagation.
 
 ## Lifecycle cleanup
@@ -45,7 +48,7 @@ Mediator records each native EventTarget registration by the event type's DOM st
 
 One-time registrations are removed from both EventTarget and the ownership registry before their callback is invoked, preserving re-entrant `once` behavior. Explicit `removeEventListener()` calls update the same registry.
 
-Caller-provided AbortSignals remain supported. Registrations sharing one caller signal are grouped behind one private dependent signal created with `AbortSignal.any()`. Cleanup therefore follows actual signal abort state rather than ordinary, interceptable `'abort'` event delivery: application listeners cannot block cleanup with `stopImmediatePropagation()`, and manually dispatching an `'abort'` event does not cancel registrations.
+Caller-provided AbortSignals remain supported. Registrations sharing one caller signal are grouped behind one private dependent signal created with `AbortSignal.any()`. That dependent signal is created once per caller signal and reused for the signal's lifetime, across mediators and across repeated add/remove cycles, so a long-lived signal does not accumulate dependent signals. Cleanup therefore follows actual signal abort state rather than ordinary, interceptable `'abort'` event delivery: application listeners cannot block cleanup with `stopImmediatePropagation()`, and manually dispatching an `'abort'` event does not cancel registrations.
 
 The source signal is brand-validated and checked for an already-aborted state before a dependent signal is allocated. Duplicate registrations and registrations using an already-aborted signal therefore remain cheap no-ops while invalid signal values still throw.
 
@@ -55,4 +58,6 @@ Mediator also uses the object form of `{capture}` for owned removals. Supported 
 
 ## Browser verification
 
-`test/browser-smoke.js` exercises `CustomEvent`, `once`, caller AbortSignal cleanup, and `destroy()` in a browser-facing build.
+CI runs a real-browser check on every pull request and push to `master` (the `browser` job in `.github/workflows/security.yml`). `npm run test:browser` bundles `test/browser/page-checks.js` with the built package and runs it in Chromium through Playwright. It checks EventTarget subclassing, `CustomEvent.detail`, `once`, capture matching, `passive` (a `preventDefault()` call in a passive listener does not cancel the event), caller AbortSignal removal and the one-`AbortSignal.any()`-per-caller-signal cache, listener exceptions reported through the window `error` event without stopping later listeners, and `destroy()`. It also runs `test/browser-smoke.js`.
+
+`test/browser-smoke.js` exercises `CustomEvent`, `once`, caller AbortSignal cleanup, and `destroy()`. `test/browser-smoke.test.js` also runs it in Node against the built package on every test run.

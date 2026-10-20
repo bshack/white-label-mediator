@@ -17,12 +17,17 @@ describe('Mediator', () => {
         const received = [];
         mediator.addEventListener('menu:state', function(event) {
             assert.equal(this, mediator);
-            received.push(event.detail);
+            received.push(event);
         });
 
-        const delivered = mediator.dispatchEvent(new CustomEvent('menu:state', {detail: {open: true}}));
+        const detail = {open: true};
+        const event = new CustomEvent('menu:state', {detail});
+        const delivered = mediator.dispatchEvent(event);
         assert.equal(delivered, true);
-        assert.deepEqual(received, [{open: true}]);
+        assert.equal(received.length, 1);
+        // Listeners must see the dispatched event and the original detail reference, not copies.
+        assert.equal(received[0], event);
+        assert.equal(received[0].detail, detail);
     });
 
     it('removes once listeners before re-entrant dispatch', () => {
@@ -85,11 +90,16 @@ describe('Mediator', () => {
         const second = mock.fn();
         mediator.addEventListener('first', first, {signal: controller.signal});
         mediator.addEventListener('second', second, {signal: controller.signal});
+        mediator.dispatchEvent(new CustomEvent('first'));
+        mediator.dispatchEvent(new CustomEvent('second'));
+        assert.equal(first.mock.callCount(), 1);
+        assert.equal(second.mock.callCount(), 1);
+
         controller.abort();
         mediator.dispatchEvent(new CustomEvent('first'));
         mediator.dispatchEvent(new CustomEvent('second'));
-        assert.equal(first.mock.callCount(), 0);
-        assert.equal(second.mock.callCount(), 0);
+        assert.equal(first.mock.callCount(), 1);
+        assert.equal(second.mock.callCount(), 1);
     });
 
     it('keeps a shared signal active while another registration still owns it', () => {
@@ -100,11 +110,14 @@ describe('Mediator', () => {
         mediator.addEventListener('first', first, {signal: controller.signal});
         mediator.addEventListener('second', second, {signal: controller.signal});
         mediator.removeEventListener('first', first);
-        controller.abort();
         mediator.dispatchEvent(new CustomEvent('first'));
         mediator.dispatchEvent(new CustomEvent('second'));
         assert.equal(first.mock.callCount(), 0);
-        assert.equal(second.mock.callCount(), 0);
+        assert.equal(second.mock.callCount(), 1);
+
+        controller.abort();
+        mediator.dispatchEvent(new CustomEvent('second'));
+        assert.equal(second.mock.callCount(), 1);
     });
 
     it('honors inherited abort signals', () => {
@@ -113,9 +126,11 @@ describe('Mediator', () => {
         const callback = mock.fn();
         const options = Object.create({signal: controller.signal});
         mediator.addEventListener('ready', callback, options);
+        mediator.dispatchEvent(new CustomEvent('ready'));
+        assert.equal(callback.mock.callCount(), 1);
         controller.abort();
         mediator.dispatchEvent(new CustomEvent('ready'));
-        assert.equal(callback.mock.callCount(), 0);
+        assert.equal(callback.mock.callCount(), 1);
     });
 
     it('ignores pre-aborted signals and rejects invalid signals', () => {
@@ -233,5 +248,29 @@ describe('Mediator', () => {
         mediator.addEventListener('before:save', event => event.preventDefault());
         const result = mediator.dispatchEvent(new CustomEvent('before:save', {cancelable: true}));
         assert.equal(result, false);
+        assert.equal(mediator.dispatchEvent(new CustomEvent('before:save')), true);
+    });
+
+    it('forwards the passive option with the same cancellation result as native EventTarget', () => {
+        // Supported runtimes differ: Node 22.18 ignores passive, so preventDefault()
+        // still cancels there. Mediator must match the running runtime's EventTarget.
+        const cancel = current => current.preventDefault();
+        const dispatch = (target, options) => {
+            target.addEventListener('scroll', cancel, options);
+            const event = new CustomEvent('scroll', {cancelable: true});
+            return {result: target.dispatchEvent(event), defaultPrevented: event.defaultPrevented};
+        };
+
+        const nativePassive = dispatch(new EventTarget(), {passive: true});
+        assert.deepEqual(dispatch(new Mediator(), {passive: true}), nativePassive);
+        assert.equal(nativePassive.result, !nativePassive.defaultPrevented);
+
+        const nonPassive = {result: false, defaultPrevented: true};
+        assert.deepEqual(dispatch(new EventTarget(), {passive: false}), nonPassive);
+        assert.deepEqual(dispatch(new Mediator(), {passive: false}), nonPassive);
+
+        // Mediator wraps signal and once listeners; passive must reach those registrations too.
+        const signal = new AbortController().signal;
+        assert.deepEqual(dispatch(new Mediator(), {passive: true, once: true, signal}), nativePassive);
     });
 });

@@ -1,8 +1,24 @@
 /** @module src/index */
 
+// A listener function for one event name. The method-property form makes TypeScript
+// check the event parameter bivariantly, the same way the DOM's own listener types
+// do, so ordinary `(event: CustomEvent<Detail>) => void` callbacks are accepted.
 type EventListenerFor<Detail> = {bivarianceHack(event: CustomEvent<Detail>): void}['bivarianceHack'];
+
+// These two types appear in the published declarations. They copy the shape of the
+// DOM's EventListenerObject and AddEventListenerOptions using only names that both
+// the DOM lib and @types/node declare, so projects without the DOM lib still compile.
+/** A listener object: any object with a `handleEvent(event)` method. */
+type EventListenerObjectLike = {handleEvent(object: Event): void};
+/** Options accepted by `addEventListener()`: `capture`, `once`, `passive`, and `signal`. */
+type AddListenerOptions = EventListenerOptions & {
+    once?: boolean;
+    passive?: boolean;
+    signal?: AbortSignal;
+};
 type Listener = EventListenerOrEventListenerObject;
 
+// addEventListener() options after converting each field to its final value.
 type ListenerOptions = {
     capture: boolean;
     once: boolean;
@@ -10,6 +26,9 @@ type ListenerOptions = {
     signal?: AbortSignal;
 };
 
+// What Mediator remembers about one registration. `callback` is what the caller
+// passed (and will pass again to remove it); `listener` is what was actually given
+// to EventTarget, which is either the callback itself or a wrapper around it.
 type ListenerRecord = {
     type: string;
     callback: Listener;
@@ -18,52 +37,102 @@ type ListenerRecord = {
     signal?: AbortSignal;
 };
 
+// The registrations that share one caller signal, plus the abort handler that
+// removes them all. `signal` is the private dependent signal, not the caller's.
 type SignalRecord = {
     signal: AbortSignal;
     listeners: Set<ListenerRecord>;
     abort: EventListener;
 };
 
+// The native `aborted` getter. Calling it directly reads the real abort state and
+// throws for anything that is not a genuine AbortSignal, even if the caller's object
+// overrides or fakes an `aborted` property.
 const abortSignalAborted = Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted')!.get!;
 
+// Caller signal -> the private signal Mediator listens to for it. Each call to
+// AbortSignal.any() adds an entry to the source signal's internal list of dependants,
+// so creating a fresh one every time a long-lived signal gains a listener would grow
+// memory without bound. Instead one is created per caller signal and reused by every
+// registration and every mediator. The WeakMap lets both be garbage-collected.
+const dependentSignals = new WeakMap<AbortSignal, AbortSignal>();
+
+/** Return the shared dependent signal for `signal`, creating it on first use. */
+function getDependentSignal(signal: AbortSignal) {
+    let dependentSignal = dependentSignals.get(signal);
+    if (!dependentSignal) {
+        dependentSignal = AbortSignal.any([signal]);
+        dependentSignals.set(signal, dependentSignal);
+    }
+    return dependentSignal;
+}
+
 /**
- * Standards-based synchronous application event bus.
+ * A synchronous application event bus built on the native `EventTarget`.
  *
- * Event payloads travel in CustomEvent.detail. Mediator tracks the native
- * EventTarget registrations it owns so destroy() can remove them deterministically.
+ * Send data in `CustomEvent.detail`. Mediator keeps a record of every listener added
+ * through it, so `destroy()` can remove them all at once and the instance stays
+ * reusable afterwards.
+ *
+ * @typeParam Events - Optional map of event name to `detail` type. It only affects
+ * type checking: listener registration is limited to the map's names and listeners
+ * receive the matching `CustomEvent<Detail>`. Nothing is validated at runtime.
  */
 class Mediator<Events extends object = Record<string, unknown>> extends EventTarget {
-    #listeners = new Set<ListenerRecord>();
-    #registrations = new Map<string, Map<Listener, Map<boolean, ListenerRecord>>>();
+    // Registrations by event type, then by original callback: one map for bubble
+    // listeners and one for capture listeners. EventTarget treats the same callback
+    // in each capture mode as a separate listener, and so does this lookup.
+    #bubbleRegistrations = new Map<string, Map<Listener, ListenerRecord>>();
+    #captureRegistrations = new Map<string, Map<Listener, ListenerRecord>>();
     #signals = new Map<AbortSignal, SignalRecord>();
+    // Each dispatchEvent() call gets a new, increasing token. #dispatchToken holds
+    // the token of the innermost dispatch currently running, or 0 when none is.
     #dispatchToken = 0;
-    #activeDispatchTokens = new Set<number>();
     #nextDispatchToken = 0;
 
-    /** Start this instance and return it for lifecycle chaining. */
+    /**
+     * Lifecycle hook for symmetry with other White Label components. It does nothing
+     * else; the mediator is ready to use as soon as it is constructed.
+     *
+     * @returns This mediator, for chaining.
+     */
     initialize() {
         return this;
     }
 
-    /** Add an owned listener with standard EventTarget options and optional typed CustomEvent detail. */
+    /**
+     * Add a listener, exactly like `EventTarget.addEventListener()`, and record it so
+     * `destroy()` can remove it later.
+     *
+     * Adding the same callback for the same type and capture mode again does nothing.
+     * A listener added while an event is being dispatched does not run for that
+     * dispatch, matching browser behaviour.
+     *
+     * @param type - Event name. With a typed event map, only names in the map are allowed.
+     * @param callback - Function or `{handleEvent}` object to call. `null` and
+     *   `undefined` are ignored.
+     * @param options - `true`/`false` for capture, or an object with `capture`, `once`,
+     *   `passive`, and `signal`. Aborting `signal` removes the listener; an
+     *   already-aborted signal means the listener is never added.
+     * @throws TypeError if fewer than two arguments are passed, `callback` is not a
+     *   function, object, `null`, or `undefined`, `type` is a symbol, or `signal` is
+     *   not an AbortSignal.
+     */
     override addEventListener<Name extends keyof Events & string>(
         type: Name,
-        callback: EventListenerFor<Events[Name]> | EventListenerObject | null,
-        options?: boolean | AddEventListenerOptions
+        callback: EventListenerFor<Events[Name]> | EventListenerObjectLike | null,
+        options?: boolean | AddListenerOptions
     ): void;
     override addEventListener(
         type: string,
         callback: Listener | null,
-        options?: boolean | AddEventListenerOptions
+        options?: boolean | AddListenerOptions
     ): void {
         if (arguments.length < 2) {throw new TypeError('addEventListener requires a type and callback.');}
 
         const normalizedType = typeof type === 'string' ? type : `${type}`;
         const normalizedCallback = this.#normalizeCallback(callback);
         const normalized = this.#normalizeAddOptions(options);
-        const signalRecord = normalized.signal === undefined
-            ? undefined
-            : this.#signals.get(normalized.signal);
         const signalAborted = normalized.signal === undefined
             ? false
             : Boolean(Reflect.apply(abortSignalAborted, normalized.signal, []));
@@ -72,30 +141,35 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         if (this.#getRecord(normalizedType, normalizedCallback, normalized.capture)) {return;}
         if (signalAborted) {return;}
 
-        const dependentSignal = normalized.signal === undefined
-            ? undefined
-            : signalRecord?.signal ?? AbortSignal.any([normalized.signal]);
         const thisMediator = this;
-        const blockedDispatchTokens = this.#activeDispatchTokens.size === 0
-            ? undefined
-            : new Set(this.#activeDispatchTokens);
+        // If a dispatch is running, remember the highest token issued so far. Every
+        // dispatch already in progress has a token at or below it; any dispatch that
+        // starts later gets a higher one. 0 means no dispatch needs to be skipped.
+        const blockedThroughToken = this.#dispatchToken === 0 ? 0 : this.#nextDispatchToken;
+        // Plain function listeners with no special handling are registered directly,
+        // which keeps the common case as fast as native EventTarget.
         const needsWrapper = normalized.once
             || normalized.signal !== undefined
             || typeof normalizedCallback !== 'function'
-            || blockedDispatchTokens !== undefined;
+            || blockedThroughToken !== 0;
         const listener: Listener = needsWrapper
             ? function(this: EventTarget, event: Event) {
-                // DOM dispatch invokes a clone of the listener list. Node walks a
-                // live list, so a registration must stay out of every dispatch
-                // that was already active when it was added. Later nested
-                // dispatches use new tokens and can observe the registration.
-                if (blockedDispatchTokens?.has(thisMediator.#dispatchToken)) {return;}
+                // Browsers dispatch to a copy of the listener list taken when the
+                // dispatch starts. Node walks the live list, so a listener added
+                // mid-dispatch could run in that same dispatch. Skip any dispatch
+                // that was already running when this listener was added; nested
+                // dispatches that start later have higher tokens and do run it.
+                const dispatchToken = thisMediator.#dispatchToken;
+                if (dispatchToken !== 0 && dispatchToken <= blockedThroughToken) {return;}
                 if (normalized.signal !== undefined
                     && Boolean(Reflect.apply(abortSignalAborted, normalized.signal, []))) {return;}
+                // Remove a once listener before calling it, so it is gone even if
+                // it throws or dispatches the same event again.
                 if (normalized.once) {thisMediator.#removeRecord(record);}
                 if (typeof normalizedCallback === 'function') {
                     normalizedCallback.call(this, event);
                 } else {
+                    // Look up handleEvent on every call, as browsers do.
                     const handleEvent = normalizedCallback.handleEvent;
                     handleEvent.call(normalizedCallback, event);
                 }
@@ -111,24 +185,37 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
                 signal: normalized.signal
             };
 
-        // Listener objects are wrapped so Node never touches handleEvent during
-        // registration. That keeps Web IDL callback lookup at dispatch time and
-        // prevents user getters from mutating signal state mid-registration.
+        // `once` and `signal` are handled by Mediator, not passed to EventTarget, so
+        // its own records stay in step with what is registered. Listener objects are
+        // always wrapped so Node never reads handleEvent during registration, where a
+        // user-defined getter could run code (for example, abort the signal) midway.
         super.addEventListener(normalizedType, listener, {
             capture: normalized.capture,
             passive: normalized.passive
         });
         this.#storeRecord(record);
 
-        if (normalized.signal !== undefined && dependentSignal) {
-            this.#trackSignal(normalized.signal, dependentSignal, record);
+        if (normalized.signal !== undefined) {
+            this.#trackSignal(normalized.signal, record);
         }
     }
 
-    /** Remove a previously registered listener using standard EventTarget matching rules. */
+    /**
+     * Remove a listener, exactly like `EventTarget.removeEventListener()`. A listener
+     * matches when the type, callback, and capture mode are the same as when it was
+     * added; `once`, `passive`, and `signal` do not matter. Removing a listener that
+     * is not registered does nothing.
+     *
+     * @param type - Event name used when the listener was added.
+     * @param callback - The same function or object that was added. `null` and
+     *   `undefined` are ignored.
+     * @param options - `true`/`false` for capture, or an object with `capture`.
+     * @throws TypeError if fewer than two arguments are passed, `callback` is not a
+     *   function, object, `null`, or `undefined`, or `type` is a symbol.
+     */
     override removeEventListener<Name extends keyof Events & string>(
         type: Name,
-        callback: EventListenerFor<Events[Name]> | EventListenerObject | null,
+        callback: EventListenerFor<Events[Name]> | EventListenerObjectLike | null,
         options?: boolean | EventListenerOptions
     ): void;
     override removeEventListener(
@@ -149,31 +236,57 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
             return;
         }
 
+        // Not one of ours (for example, added with EventTarget.prototype directly):
+        // pass the removal through to the native EventTarget unchanged.
         super.removeEventListener(normalizedType, normalizedCallback, {capture});
     }
 
-    /** Dispatch with DOM-style listener snapshot semantics across supported runtimes. */
+    /**
+     * Dispatch an event synchronously, exactly like `EventTarget.dispatchEvent()`.
+     * Every matching listener has run by the time this returns. Listeners added
+     * during the dispatch do not run until a later dispatch, as in browsers.
+     *
+     * A listener that throws does not stop the other listeners and does not make
+     * this method throw; the runtime reports the error asynchronously instead.
+     *
+     * @param event - The event to deliver, usually a `CustomEvent` carrying `detail`.
+     * @returns `false` if the event is cancelable and a listener called
+     *   `preventDefault()`, otherwise `true`. It does not say whether any listener ran.
+     */
     override dispatchEvent(event: Event): boolean {
         const previousToken = this.#dispatchToken;
         const token = ++this.#nextDispatchToken;
         this.#dispatchToken = token;
-        this.#activeDispatchTokens.add(token);
         try {
             return super.dispatchEvent(event);
         } finally {
-            this.#activeDispatchTokens.delete(token);
             this.#dispatchToken = previousToken;
         }
     }
 
-    /** Remove every listener owned by this mediator and leave it reusable. */
+    /**
+     * Remove every listener that was added through this mediator. Use it when the
+     * mediator itself is finished; components should remove their own listeners.
+     * The mediator can be used again afterwards.
+     *
+     * @returns This mediator, for chaining.
+     */
     destroy() {
-        for (const record of [...this.#listeners]) {
+        // Copy first: removing records while iterating the maps would skip entries.
+        const records: ListenerRecord[] = [];
+        for (const registrations of [this.#bubbleRegistrations, this.#captureRegistrations]) {
+            for (const callbacks of registrations.values()) {
+                for (const record of callbacks.values()) {records.push(record);}
+            }
+        }
+        for (const record of records) {
             this.#removeRecord(record);
         }
         return this;
     }
 
+    // Accept what EventTarget accepts: a function, any object (handleEvent is checked
+    // later, at dispatch), or null/undefined meaning "no listener".
     #normalizeCallback(callback: unknown): Listener | null {
         if (callback === null || callback === undefined) {return null;}
         if (typeof callback === 'function' || typeof callback === 'object') {
@@ -182,7 +295,11 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         throw new TypeError('Event listener must be a function, object, null, or undefined.');
     }
 
-    #normalizeAddOptions(options?: boolean | AddEventListenerOptions): ListenerOptions {
+    // Read addEventListener() options the way EventTarget does: a non-object is the
+    // capture flag, and each object field is read once and converted to a boolean.
+    // Reading through normal property access includes inherited and non-enumerable
+    // properties, as the web platform does.
+    #normalizeAddOptions(options?: boolean | AddListenerOptions): ListenerOptions {
         const value: unknown = options;
         if (value === undefined || value === null) {
             return {capture: false, once: false, passive: false};
@@ -192,7 +309,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
             return {capture: Boolean(value), once: false, passive: false};
         }
 
-        const dictionary = value as AddEventListenerOptions;
+        const dictionary = value as AddListenerOptions;
         const capture = Boolean(dictionary.capture);
         const once = Boolean(dictionary.once);
         const passive = Boolean(dictionary.passive);
@@ -203,6 +320,7 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
             : {capture, once, passive, signal};
     }
 
+    // Same as above for removeEventListener(), which only reads `capture`.
     #normalizeCapture(options?: boolean | EventListenerOptions): boolean {
         const value: unknown = options;
         if (value === undefined || value === null) {return false;}
@@ -210,39 +328,36 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         return Boolean((value as EventListenerOptions).capture);
     }
 
+    #registrationsFor(capture: boolean) {
+        return capture ? this.#captureRegistrations : this.#bubbleRegistrations;
+    }
+
     #getRecord(type: string, callback: Listener, capture: boolean) {
-        return this.#registrations.get(type)?.get(callback)?.get(capture);
+        return this.#registrationsFor(capture).get(type)?.get(callback);
     }
 
     #storeRecord(record: ListenerRecord) {
-        let callbacks = this.#registrations.get(record.type);
+        const registrations = this.#registrationsFor(record.capture);
+        let callbacks = registrations.get(record.type);
         if (!callbacks) {
             callbacks = new Map();
-            this.#registrations.set(record.type, callbacks);
+            registrations.set(record.type, callbacks);
         }
 
-        let captures = callbacks.get(record.callback);
-        if (!captures) {
-            captures = new Map();
-            callbacks.set(record.callback, captures);
-        }
-
-        captures.set(record.capture, record);
-        this.#listeners.add(record);
+        callbacks.set(record.callback, record);
     }
 
+    // Remove one registration from EventTarget and from every Mediator record,
+    // including its signal group. Stops watching the signal once no listener uses it.
     #removeRecord(record: ListenerRecord) {
-        this.#listeners.delete(record);
-
-        // Use the object form consistently; supported Node versions have differed
-        // in boolean-capture removal behavior when both capture modes are present.
+        // Always pass {capture} as an object. Supported Node versions have handled a
+        // plain boolean differently when one callback is registered in both modes.
         super.removeEventListener(record.type, record.listener, {capture: record.capture});
 
-        const callbacks = this.#registrations.get(record.type)!;
-        const captures = callbacks.get(record.callback)!;
-        captures.delete(record.capture);
-        if (captures.size === 0) {callbacks.delete(record.callback);}
-        if (callbacks.size === 0) {this.#registrations.delete(record.type);}
+        const registrations = this.#registrationsFor(record.capture);
+        const callbacks = registrations.get(record.type)!;
+        callbacks.delete(record.callback);
+        if (callbacks.size === 0) {registrations.delete(record.type);}
 
         if (record.signal) {
             const signalRecord = this.#signals.get(record.signal)!;
@@ -254,9 +369,15 @@ class Mediator<Events extends object = Record<string, unknown>> extends EventTar
         }
     }
 
-    #trackSignal(signal: AbortSignal, dependentSignal: AbortSignal, record: ListenerRecord) {
+    // Add a registration to the group for its caller signal. The first registration
+    // for a signal subscribes to that signal's shared dependent signal; aborting it
+    // removes every registration in the group. Listening to the private dependent
+    // signal, rather than the caller's, means application code cannot block cleanup
+    // with stopImmediatePropagation() or trigger it by dispatching a fake 'abort'.
+    #trackSignal(signal: AbortSignal, record: ListenerRecord) {
         let signalRecord = this.#signals.get(signal);
         if (!signalRecord) {
+            const dependentSignal = getDependentSignal(signal);
             const listeners = new Set<ListenerRecord>();
             const abort: EventListener = () => {
                 for (const listenerRecord of [...listeners]) {
