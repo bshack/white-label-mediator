@@ -24,6 +24,9 @@ jobs:
       - run: npm run lint
       # coverage builds (which typechecks), checks consumer types, and runs every Node test.
       - run: npm run coverage
+      # Short Mediator benchmark against benchmark/baseline.json; fails only above 3x
+      # the baseline (runner noise) or when the AbortSignal.any() counts change.
+      - run: npm run bench:ci
       - run: npm run audit
       # dist/ was built by coverage; skip the prepare script's rebuild while packing.
       - run: npm pack --dry-run --ignore-scripts
@@ -35,6 +38,23 @@ jobs:
           path: '*.tgz'
           if-no-files-found: error
           retention-days: 7
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.21.0
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      # Bundles the built package and runs the EventTarget checks in real Chromium.
+      - run: npm run test:browser
 
   minimum-node-runtime:
     runs-on: ubuntu-latest

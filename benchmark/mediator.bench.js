@@ -1,15 +1,27 @@
 'use strict';
 
 // Diagnostic benchmark comparing Mediator with native EventTarget and EventEmitter.
-// Run with `npm run benchmark` (builds first). It is not part of the gate or CI and
-// takes more than 30 minutes: Node's native EventTarget baseline is quadratic in two
-// of the cases below. Results are medians of several rounds and enforce no thresholds.
+// Run with `npm run benchmark` (builds first). It is not part of the gate or CI.
+// Results are medians of several rounds and enforce no thresholds.
+//
+// Node's native EventTarget is quadratic in two signal cases (shared signal add +
+// abort, and duplicate add with signal), which alone take more than 30 minutes. Their
+// native baseline columns are skipped unless you pass the flag:
+//   npm run benchmark -- --include-native-quadratic
+// The Mediator columns for those cases always run.
 
 const {EventEmitter, setMaxListeners} = require('node:events');
 const {performance} = require('node:perf_hooks');
 const Mediator = require('../dist');
 
 const rounds = 7;
+const includeNativeQuadratic = process.argv.includes('--include-native-quadratic');
+const skipped = 'skipped (--include-native-quadratic)';
+
+// Native EventTarget baseline for the quadratic cases, or a placeholder when skipped.
+function nativeQuadratic(run) {
+    return includeNativeQuadratic ? run().toFixed(2) : skipped;
+}
 
 function median(values) {
     const sorted = [...values].sort((left, right) => left - right);
@@ -130,13 +142,13 @@ console.table([{
 console.table([100, 1_000, 10_000].map(listeners => ({
     operation: 'shared signal add + abort',
     listeners,
-    eventTargetMs: benchmarkSharedSignal(EventTarget, listeners).toFixed(2),
+    eventTargetMs: nativeQuadratic(() => benchmarkSharedSignal(EventTarget, listeners)),
     mediatorMs: benchmarkSharedSignal(Mediator, listeners).toFixed(2)
 })));
 console.table([{
     operation: 'duplicate add with signal',
     iterations: 100_000,
-    eventTargetMs: benchmarkDuplicateSignal(EventTarget, 100_000).toFixed(2),
+    eventTargetMs: nativeQuadratic(() => benchmarkDuplicateSignal(EventTarget, 100_000)),
     mediatorMs: benchmarkDuplicateSignal(Mediator, 100_000).toFixed(2)
 }, {
     operation: 'pre-aborted signal add',
@@ -147,4 +159,7 @@ console.table([{
 console.log('Medians of seven rounds. EventEmitter approximates the v4 Node runtime path.');
 console.log('Publish columns include CustomEvent allocation; reused dispatch isolates dispatch cost.');
 console.log('Signal cases include registration and, where applicable, abort-driven cleanup.');
-console.log('Benchmarks are diagnostic only and do not enforce CI thresholds.');
+if (!includeNativeQuadratic) {
+    console.log('Quadratic native EventTarget baselines were skipped; pass --include-native-quadratic to run them.');
+}
+console.log('Benchmarks are diagnostic only; `npm run bench:ci` is the thresholded CI check.');

@@ -216,7 +216,7 @@ npm ci --ignore-scripts
 npm run lint && npm run coverage && npm run audit
 ```
 
-`npm run coverage` builds (which typechecks), checks the consumer types, runs every test, and requires 100% coverage. Edit `src/*.ts`, never `dist/`. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the fast loop, packaging checks, and benchmarks.
+`npm run coverage` builds (which typechecks), checks the consumer types, runs every test, and requires 100% coverage. Edit `src/*.ts`, never `dist/`. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the fast loop, packaging checks, the Chromium check (`npm run test:browser`), and benchmarks (`npm run benchmark`, `npm run bench:ci`).
 
 ## Design boundary
 

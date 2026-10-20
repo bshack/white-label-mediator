@@ -1,0 +1,16 @@
+{
+  "node": "v24.21.0",
+  "timingsNsPerOp": {
+    "dispatch, 1 listener": 121.73,
+    "dispatch, 10 listeners": 247.26,
+    "add + remove": 537.14,
+    "once add + dispatch": 462.88,
+    "signal add + remove": 1419.93,
+    "destroy, per listener": 2103.16
+  },
+  "counters": {
+    "AbortSignal.any calls, 1,000 add/remove cycles on one signal": 1,
+    "AbortSignal.any calls, 10 mediators x 100 types on one signal": 1,
+    "AbortSignal.any calls, 100 distinct signals": 100
+  }
+}

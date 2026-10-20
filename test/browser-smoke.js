@@ -1,7 +1,11 @@
 // Bundle this file for a browser; see docs/events-compatibility.md.
 const Mediator = require('..');
 const mediator = new Mediator();
-const assert = (value, message) => { if (!value) throw new Error(message); };
+const assert = (value, message) => {
+    if (!value) {
+        throw new Error(message);
+    }
+};
 const calls = [];
 const listener = event => calls.push(event.detail);
 

@@ -24,11 +24,13 @@
     "audit": "npm audit --audit-level=high",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:unit": "node --test test/*.test.js",
+    "test:browser": "node --test test/browser/*.test.js",
     "coverage": "node --run build && node --run test:types && c8 node --run test:unit",
     "benchmark": "node --run build && node benchmark/mediator.bench.js",
+    "bench:ci": "node --run build && node benchmark/ci.bench.js",
     "prepare": "node --run build",
     "test:types": "tsc -p tsconfig.consumer.json && tsc -p tsconfig.consumer-node.json",
-    "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.js\" \"benchmark/**/*.js\" --max-warnings=0",
     "lint:fix": "node --run lint -- --fix"
   },
   "repository": {
@@ -66,14 +68,16 @@
   },
   "homepage": "https://whitelabeljs.org/docs/mediator/",
   "devDependencies": {
-    "@types/node": "24.13.3",
-    "c8": "12.0.0",
-    "typescript": "7.0.2",
     "@babel/core": "8.0.5",
     "@babel/eslint-parser": "8.0.5",
     "@babel/preset-typescript": "8.0.1",
     "@eslint/js": "10.0.1",
-    "eslint": "10.10.0"
+    "@types/node": "24.13.3",
+    "c8": "12.0.0",
+    "esbuild": "0.28.2",
+    "eslint": "10.10.0",
+    "playwright": "1.64.1",
+    "typescript": "7.0.2"
   },
   "types": "dist/index.d.ts",
   "c8": {

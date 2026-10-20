@@ -58,4 +58,6 @@ Mediator also uses the object form of `{capture}` for owned removals. Supported 
 
 ## Browser verification
 
-`test/browser-smoke.js` exercises `CustomEvent`, `once`, caller AbortSignal cleanup, and `destroy()`. `test/browser-smoke.test.js` runs it in Node against the built package on every test run so it stays correct; to check a real browser, bundle `test/browser-smoke.js` and load it in a page (it sets `globalThis.whiteLabelSmokePassed = true` on success).
+CI runs a real-browser check on every pull request and push to `master` (the `browser` job in `.github/workflows/security.yml`). `npm run test:browser` bundles `test/browser/page-checks.js` with the built package and runs it in Chromium through Playwright. It checks EventTarget subclassing, `CustomEvent.detail`, `once`, capture matching, `passive` (a `preventDefault()` call in a passive listener does not cancel the event), caller AbortSignal removal and the one-`AbortSignal.any()`-per-caller-signal cache, listener exceptions reported through the window `error` event without stopping later listeners, and `destroy()`. It also runs `test/browser-smoke.js`.
+
+`test/browser-smoke.js` exercises `CustomEvent`, `once`, caller AbortSignal cleanup, and `destroy()`. `test/browser-smoke.test.js` also runs it in Node against the built package on every test run.
